@@ -49,7 +49,12 @@ void loop()
     //Write first 18 variables to log
     for (int i = 0; i <= 17; i++)
     {
-      dataString += CAN_data[i];
+      if (CAN_data[i] < 0x10)
+      {
+        Serial.print("0");
+      }
+      Serial.print(CAN_data[i], HEX);
+      Serial.print(" ");
     }
 
     // If 30 seconds have passed, write additional variables to log
@@ -58,17 +63,22 @@ void loop()
       counter = 0;
       for (int i = 18; i <= 21; i++)
       {
-        dataString += CAN_data[i]
+        if (CAN_data[i] < 0x10)
+        {
+          Serial.print("0");
+        }
+        Serial.print(CAN_data[i], HEX);
+        Serial.print(" ");
       }
     }
 
     // open file
-    File dataFile = FileSystem.open(filename, FILE_APPEND); dataString);
+    File dataFile = FileSystem.open(filename, FILE_APPEND);
 
     // write to log
     if (dataFile)
-  {
-    dataFile.println(dataString);
+    {
+      dataFile.println(dataString);
       dataFile.close();
     }
     else // error
@@ -86,6 +96,8 @@ void loop()
 
     if (String(rxId, HEX) == "477" || String(rxId, HEX) == "475" || String(rxId, HEX) == "270" || String(rxId, HEX) == "294" || String(rxId, HEX) == "306")
     {
+      String time = getTimeStamp();
+      Serial.print(time);
       Serial.print(", ID: ");
       Serial.print(rxId, HEX);
       Serial.print(", Data: ");
@@ -94,49 +106,50 @@ void loop()
       {
         for (int i = 0; i < 4; i++) // Print the 1-second interval bytes
         {
-          if (rxBuf[i] < 0x10) // If data byte is less than 0x10, add a leading zero
-          {
-            CAN_data[i] = rxBuf[i];
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
+          CAN_data[i] = rxBuf[i];
         }
         for (int i = 4; i < 7; i++) // Print the 30-second interval bytes
         {
-          if (rxBuf[i] < 0x10)
-          {
-            CAN_data[i+14] = rxBuf[i];
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
+          CAN_data[i + 14] = rxBuf[i];
         }
       }
       else if (String(rxId, HEX) == "475")
       {
-        for (int i = 0; i < 7; i++)
-        {
-          if (rxBuf[i] < 0x10)
-          {
-            CAN_data[i+14] = rxBuf[i];
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
-        }
+        CAN_data[4] = rxBuf[0];
+        CAN_data[5] = rxBuf[1];
+        CAN_data[21] = rxBuf[5];
+        CAN_data[6] = rxBuf[6];
+        CAN_data[7] = rxBuf[7];
       }
       else if (String(rxId, HEX) == "270")
       {
-        
+        CAN_data[8] = rxBuf[6];
+        CAN_data[9] = rxBuf[7];
       }
       else if (String(rxId, HEX) == "294")
       {
-        
+        CAN_data[10] = rxBuf[6];
+        CAN_data[11] = rxBuf[7];
       }
       else if (String(rxId, HEX) == "306")
       {
-        
+        CAN_data[12] = rxBuf[2];
+        CAN_data[13] = rxBuf[3];
+        CAN_data[14] = rxBuf[4];
+        CAN_data[15] = rxBuf[5];
+        CAN_data[16] = rxBuf[6];
+        CAN_data[17] = rxBuf[7];
+      }
+
+      //Just for debugging purposes
+      for (int i = 0; i < len; i++)
+      {
+        if (rxBuf[i] < 0x10)
+        {
+          Serial.print("0");
+        }
+        Serial.print(rxBuf[i], HEX);
+        Serial.print(" ");
       }
     }
   }
