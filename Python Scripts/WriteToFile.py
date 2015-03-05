@@ -18,7 +18,9 @@ if (not os.path.exists("Datalogs/RAW")):
 def parse_date(date):
     year = "20" + date[0:2]
     day = str(int(date[5:7]))
-
+    
+    date = date[2:5].upper()
+    month = "NUL"
     if date == "Jan":
         month = "January"
     elif date == "Feb":
@@ -44,11 +46,11 @@ def parse_date(date):
     elif date[0] == 'D':
         month = "December"
 
-    full_date = month + day + ", " + year
+    full_date = month + " " + day + " " + year
     return full_date
 
 def parse_data(fileName, data):
-    global odometer, hours_charging, hours_operating, hours_running, battery_energy, motor_energy, aux_energy
+    global last_time_stamp, odometer, hours_charging, hours_operating, hours_running, battery_energy, motor_energy, aux_energy
     global soc, time_charging, vehicle_on_time, run_hours
     global thirty_sec_counter
 
@@ -91,11 +93,16 @@ def parse_data(fileName, data):
         run_hours += 1
 
     thirty_sec_counter += 1
-    
+
+    #calculate time difference between current and previous time stamps
+    time_span = 0
+    times = data[0].split(":")
+    current_time_stamp = int(times[0]) * 3600 + int(times[1] * 60) + int(times[2])
+    if (last_time_stamp is not None):
+        time_span = (current_time_stamp - last_time_stamp)/3600.0
+    last_time_stamp = current_time_stamp
 
     #integrate certain variables to gets sums
-    time_span = 0                                                       #TODO: calculate time_span somehow
-    
     odometer += (vehicle_speed * time_span)
     hours_charging += (time_charging * time_span)
     hours_operating += (vehicle_on_time * time_span)
@@ -103,7 +110,6 @@ def parse_data(fileName, data):
     battery_energy += (battery_power_in * time_span)
     motor_energy += (motor_power * time_span)
     aux_energy += (aux_power * time_span)
-    
 
     #write values to excel
     excelFile.write(data[0] + ",")                                      #Time Stamp
@@ -139,8 +145,8 @@ for file in os.listdir("Datalogs"):
             #create & start the excel file that will house the parsed data
             fileName = file[:len(file)-4] + ".csv"
             excelFile = open(fileName, 'a+')
-            excelFile.write('\n                                                                                                                                                                                                                                                                                                           ')
-            excelFile.write('\n                                                                                                                                                                                                                                                                                                           ')
+            excelFile.write('\n                                                                                                                                                                                                                     ')
+            excelFile.write('\n                                                                                                                                                                                                                                           ')
             excelFile.write('\nTime Stamp, Battery Amperage, Battery Voltage, Battery Power In, Battery Power Out, Motor Current, Motor Voltage, Motor Power, Auxiliary Power, Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity, SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
 
             for line in f:
@@ -155,17 +161,17 @@ for file in os.listdir("Datalogs"):
         excelFile = open(fileName, 'r+')
         excelFile.seek(0)
         excelFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
-        excelFile.write(fileName[:-4] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
+        excelFile.write(parse_date(fileName[:-4]) +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
         excelFile.close()
 
         #If summary file doesn't exist: make it and the write the header!
         if (not os.path.exists("Summary.csv")):
             with open("Summary.csv", 'a+') as summaryFile:
-                summaryFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
+                summaryFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On')
 
         #Append summations to summary file
         with open("Summary.csv", 'a+') as summaryFile:
-            summaryFile.write(fileName[:-4] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
+            summaryFile.write("\n" + parse_date(fileName[:-4]) +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
             
         #move files into the done folder after processing them
         #shutil.move('Datalogs/' + file, 'Datalogs/RAW/' + file)

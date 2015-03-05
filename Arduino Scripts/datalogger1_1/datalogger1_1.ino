@@ -47,7 +47,7 @@ void loop()
     //dataString += getTimeStamp();
 
     //Write first 18 variables to log
-    for (int i = 0; i <= 17; i++)
+    for (int i = 0; i <= 21; i++)
     {
       if (CAN_data[i] < 0x10)
       {
@@ -55,21 +55,6 @@ void loop()
       }
       Serial.print(CAN_data[i], HEX);
       Serial.print(" ");
-    }
-
-    // If 30 seconds have passed, write additional variables to log
-    if (counter > 29) // 30 seconds have elapsed
-    {
-      counter = 0;
-      for (int i = 18; i <= 21; i++)
-      {
-        if (CAN_data[i] < 0x10)
-        {
-          Serial.print("0");
-        }
-        Serial.print(CAN_data[i], HEX);
-        Serial.print(" ");
-      }
     }
 
     // open file
@@ -158,9 +143,7 @@ void loop()
 String getTimeStamp()
 {
   DateTime now = rtc.now();
-  String time = "";
-
-  time = String(now.month()) + "/" + String(now.day()) + "/" + String(now.year()) + " " + String(now.hour()) + ":" + String(now.minute()) + "." + String(now.second());
+  String time = String(now.hour()) + ":" + String(now.minute()) + ":" + String(now.second());
 
   return time;
 }
