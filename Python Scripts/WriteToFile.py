@@ -3,7 +3,7 @@ import os, shutil
 thirty_sec_counter = 0
 odometer = hours_charging = hours_operating = hours_running = battery_energy = motor_energy = aux_energy = 0
 soc = time_charging = vehicle_on_time = run_hours = 0
-last_time_stamp = None                                                  #TODO: set to midnight somehow
+last_time_stamp = None
 
 #confirm your original path
 print("Path at terminal when executing this file")
@@ -24,7 +24,7 @@ def parse_date(date):
     if date == "Jan":
         month = "January"
     elif date == "Feb":
-        month = "February"
+        month[0] = 'F'
     elif date == "Mar":
         month = "March"
     elif date == "Apr":
@@ -95,11 +95,13 @@ def parse_data(fileName, data):
     thirty_sec_counter += 1
 
     #calculate time difference between current and previous time stamps
-    time_span = 0
     times = data[0].split(":")
-    current_time_stamp = int(times[0]) * 3600 + int(times[1] * 60) + int(times[2])
-    if (last_time_stamp is not None):
+    current_time_stamp = int(times[0]) * 3600 + int(times[1] * 60) + int(times[2]) #convert to seconds
+    time_span = 1/3600                                                  #if there is no previous time stamp, assume 1s
+    if last_time_stamp is not None:
         time_span = (current_time_stamp - last_time_stamp)/3600.0
+        if time_span > 2:                                               #if time between time stamps is too long, assume 1s
+            time_span = 1/3600
     last_time_stamp = current_time_stamp
 
     #integrate certain variables to gets sums
