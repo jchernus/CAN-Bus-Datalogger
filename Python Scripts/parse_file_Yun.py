@@ -1,4 +1,4 @@
-import os, shutil
+import os
 
 thirty_sec_counter = 0
 odometer = hours_charging = hours_operating = hours_running = battery_energy = motor_energy = aux_energy = 0
@@ -16,10 +16,13 @@ if (not os.path.exists("Datalogs/RAW")):
     os.mkdir("Datalogs/RAW")
 
 def parse_date(date):
-    year = "20" + date[0:2]
-    day = str(int(date[5:7]))
+    if int(date[0:1]) < 5:
+        year = "202" + date[0:1]
+    else:
+        year = "201" + date[0:1]
+    day = str(int(date[4:6]))
     
-    date = date[2:5].upper()
+    date = date[1:4].upper()
     month = "NUL"
     if date == "Jan":
         month = "January"
@@ -145,18 +148,35 @@ for file in os.listdir("Datalogs"):
         with open(file, 'r+') as f: #open files as read only
 
             #create & start the excel file that will house the parsed data
-            fileName = file[:len(file)-4] + ".csv"
+            fileName = file[:len(file)-6] + ".csv" #strip off the two digits for hours and the ".txt"
+            file_existed = False
+            if os.path.exists(fileName):
+                file_existed = True
+                
+            if file_existed: #read in existing values
+                with open(fileName, 'r+') as parsedFile:
+                    line = parsedFile.readline() #ignore the first line
+                    line = parsedFile.readline() #we want this second line
+                    sums = line.strip().split(",")
+                    
+                    odometer = float(sums[1])
+                    battery_energy = float(sums[2])
+                    motor_energy = float(sums[3])
+                    aux_energy = float(sums[4])
+                    hours_charging = float(sums[5])
+                    hours_running = float(sums[6])
+                    hours_operating = float(sums[7])
+                    
             excelFile = open(fileName, 'a+')
-            excelFile.write('\n                                                                                                                                                                                                                     ')
-            excelFile.write('\n                                                                                                                                                                                                                                           ')
-            excelFile.write('\nTime Stamp, Battery Amperage, Battery Voltage, Battery Power In, Battery Power Out, Motor Current, Motor Voltage, Motor Power, Auxiliary Power, Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity, SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
+            if not file_existed: #the file was just created, add the top column headings
+                excelFile.write('\n                                                                                                                                                                                                                     ')
+                excelFile.write('\n                                                                                                                                                                                                                                           ')
+                excelFile.write('\nTime Stamp, Battery Amperage, Battery Voltage, Battery Power In, Battery Power Out, Motor Current, Motor Voltage, Motor Power, Auxiliary Power, Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity, SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
 
             for line in f:
-
                 data = line.strip().split(" ")
-                print data
-                print (len(data))
-                if (len(data) == 19 or len(data) == 23): #time stamp + 18/22 data points
+                print(len(data))
+                if len(data) == 23: #time stamp + 18/22 data points
                     parse_data(file, data)
 
         #Write summations to first and second lines in the .csv file.
@@ -165,16 +185,3 @@ for file in os.listdir("Datalogs"):
         excelFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
         excelFile.write(parse_date(fileName[:-4]) +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
         excelFile.close()
-
-        #If summary file doesn't exist: make it and the write the header!
-        if (not os.path.exists("Summary.csv")):
-            with open("Summary.csv", 'a+') as summaryFile:
-                summaryFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On')
-
-        #Append summations to summary file
-        with open("Summary.csv", 'a+') as summaryFile:
-            summaryFile.write("\n" + parse_date(fileName[:-4]) +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
-            
-        #move files into the done folder after processing them
-        #shutil.move('Datalogs/' + file, 'Datalogs/RAW/' + file)
-        print("Moved file: " + file)

@@ -14,7 +14,7 @@ unsigned char rxBuf[8];
 char filename[] = "/mnt/sda1/datalog.txt";
 
 //variables used to process data
-uint8_t counter = 0;
+uint8_t main_counter = 0;
 
 //all of the variables of interest
 byte CAN_data[22];
@@ -25,9 +25,9 @@ void setup()
 
   Bridge.begin();
   FileSystem.begin();
-  
+
   CAN0.begin(CAN_500KBPS); // init can bus : baudrate = 500k
-  pinMode(4, INPUT); // Setting pin 2 for /INT input
+  pinMode(2, INPUT); // Setting pin 2 for /INT input
   Serial.println("MCP2515 Library Receive Example...");
 
   //  Wire.begin();
@@ -40,42 +40,41 @@ void setup()
 
 void loop()
 {
-//  //If 1 second has passed, write variables to log
-//  counter++;
-//  if (counter > 100)
-//  {
-//    counter = 0;
-//    String dataString = ""; // string used to store data to be logged
-//    //dataString += getTimeStamp() + " ";
-//
-//    //Write all 21 variables to the file
-//    for (int i = 0; i <= 21; i++)
-//    {
-//      if (CAN_data[i] < 0x10)
-//      {
-//        dataString += "0";
-//      }
-//      dataString += String(CAN_data[i], HEX);
-//      dataString += " ";
-//    }
-//    dataString += "\n";
-//
-//    // open file
-//    //filename = ("/mnt/sda1/" + getDate() + ".txt").toCharArray(filename, 21); //getDate computes the date in YMMMDDHH format
-//    File dataFile = FileSystem.open(filename, FILE_APPEND);
-//
-//    // write to log
-//    if (dataFile)
-//    {
-//      dataFile.println(dataString);
-//      dataFile.close();
-//    }
-//  }
+  //If 1 second has passed, write variables to log
+  counter++;
+  if (counter > 10)
+  {
+    counter = 0;
+    String dataString = ""; // string used to store data to be logged
+    //dataString += getTimeStamp() + " ";
+
+    //Write all 21 variables to the file
+    for (int i = 0; i <= 21; i++)
+    {
+      if (CAN_data[i] < 0x10)
+      {
+        dataString += "0";
+      }
+      dataString += String(CAN_data[i], HEX);
+      dataString += " ";
+    }
+    dataString += "\n";
+
+    // open file
+    //filename = ("/mnt/sda1/" + getDate() + ".txt").toCharArray(filename, 21); //getDate computes the date in YMMMDDHH format
+    File dataFile = FileSystem.open(filename, FILE_APPEND);
+
+    // write to log
+    if (dataFile)
+    {
+      dataFile.println(dataString);
+      dataFile.close();
+    }
+  }
 
   //GRAB CAN DATA ANYTIME IT'S AVILABLE AND WRITE IT TO THE ARRAY
-  if (!digitalRead(4)) // If pin 2 is low, read receive buffer
+  if (!digitalRead(2)) // If pin 2 is low, read receive buffer
   {
-    Serial.println(".");
     CAN0.readMsgBuf(&len, rxBuf); // Read data: len = data length, buf = data byte(s)
     rxId = CAN0.getCanId(); // Get message ID
 
@@ -83,6 +82,9 @@ void loop()
     {
       //String time = getTimeStamp();
       //Serial.print(time);
+      Serial.print(", ID: ");
+      Serial.print(rxId, HEX);
+      Serial.print(", Data: ");
 
       if (String(rxId, HEX) == "477")
       {
@@ -94,21 +96,6 @@ void loop()
         {
           CAN_data[i + 14] = rxBuf[i];
         }
-        
-        //Just for debugging purposes - print it to the Serial port
-        Serial.print(", ID: ");
-        Serial.print(rxId, HEX);
-        Serial.print(", Data: ");
-        for (int i = 0; i < len; i++)
-        {
-          if (rxBuf[i] < 0x10)
-          {
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
-        }
-        Serial.println("");
       }
       else if (String(rxId, HEX) == "475")
       {
@@ -117,61 +104,16 @@ void loop()
         CAN_data[21] = rxBuf[5];
         CAN_data[6] = rxBuf[6];
         CAN_data[7] = rxBuf[7];
-        
-        //Just for debugging purposes - print it to the Serial port
-        Serial.print(", ID: ");
-        Serial.print(rxId, HEX);
-        Serial.print(", Data: ");
-        for (int i = 0; i < len; i++)
-        {
-          if (rxBuf[i] < 0x10)
-          {
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
-        }
-        Serial.println("");
       }
       else if (String(rxId, HEX) == "270")
       {
         CAN_data[8] = rxBuf[6];
         CAN_data[9] = rxBuf[7];
-        
-        //Just for debugging purposes - print it to the Serial port
-        Serial.print(", ID: ");
-        Serial.print(rxId, HEX);
-        Serial.print(", Data: ");
-        for (int i = 0; i < len; i++)
-        {
-          if (rxBuf[i] < 0x10)
-          {
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
-        }
-        Serial.println("");
       }
       else if (String(rxId, HEX) == "294")
       {
         CAN_data[10] = rxBuf[6];
         CAN_data[11] = rxBuf[7];
-        
-        //Just for debugging purposes - print it to the Serial port
-        Serial.print(", ID: ");
-        Serial.print(rxId, HEX);
-        Serial.print(", Data: ");
-        for (int i = 0; i < len; i++)
-        {
-          if (rxBuf[i] < 0x10)
-          {
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
-        }
-        Serial.println("");
       }
       else if (String(rxId, HEX) == "306")
       {
@@ -181,22 +123,19 @@ void loop()
         CAN_data[15] = rxBuf[5];
         CAN_data[16] = rxBuf[6];
         CAN_data[17] = rxBuf[7];
-        
-        //Just for debugging purposes - print it to the Serial port
-        Serial.print(", ID: ");
-        Serial.print(rxId, HEX);
-        Serial.print(", Data: ");
-        for (int i = 0; i < len; i++)
-        {
-          if (rxBuf[i] < 0x10)
-          {
-            Serial.print("0");
-          }
-          Serial.print(rxBuf[i], HEX);
-          Serial.print(" ");
-        }
-        Serial.println("");
       }
+
+      //Just for debugging purposes - print it to the Serial port
+      for (int i = 0; i < len; i++)
+      {
+        if (rxBuf[i] < 0x10)
+        {
+          Serial.print("0");
+        }
+        Serial.print(rxBuf[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println("");
     }
   }
 }

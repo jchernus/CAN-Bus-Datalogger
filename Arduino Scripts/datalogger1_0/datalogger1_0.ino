@@ -47,23 +47,13 @@ void loop()
     //dataString += getTimeStamp();
 
     //Write first 18 variables to log
-    for (int i = 0; i <= 17; i++)
+    for (int i = 0; i <= 21; i++)
     {
       dataString += CAN_data[i];
     }
 
-    // If 30 seconds have passed, write additional variables to log
-    if (counter > 29) // 30 seconds have elapsed
-    {
-      counter = 0;
-      for (int i = 18; i <= 21; i++)
-      {
-        dataString += CAN_data[i]
-      }
-    }
-
     // open file
-    File dataFile = FileSystem.open(filename, FILE_APPEND); dataString);
+    File dataFile = FileSystem.open(filename, FILE_APPEND);
 
     // write to log
     if (dataFile)
@@ -138,6 +128,7 @@ void loop()
       {
         
       }
+      Serial.println("");
     }
   }
 }
