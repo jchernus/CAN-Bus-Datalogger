@@ -17,12 +17,8 @@ print(os.getcwd() + "\n")
 #create the paths that are needed to store files
 if (not os.path.exists("Datalogs")):
     os.mkdir("Datalogs")
-if (not os.path.exists("Datalogs/RAW")):
-    os.mkdir("Datalogs/RAW")
-
-def parse_date(date):
-    full_date = None
-    return full_date
+#if (not os.path.exists("Datalogs/RAW")):
+    #os.mkdir("Datalogs/RAW")
 
 def parse_data(time_stamp, msg_id, data):
     global battery_current, battery_voltage, battery_power_in, battery_power_out, mc_cap_voltage, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
@@ -57,8 +53,8 @@ def parse_data(time_stamp, msg_id, data):
         if (int(data[10] + data[11], 16) > 0):
             _run_hours = 1
 
-    elif (msg_id == "270"):
-        motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16)
+    #elif (msg_id == "270"):
+        #motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16)
 
     elif (msg_id == "294"):
         mc_battery_current = int(data[14] + data[15] + data[12] + data[13], 16)
@@ -71,14 +67,14 @@ def parse_data(time_stamp, msg_id, data):
     current_time = strftime('%H:%M:%S', localtime(time_stamp))
     times = str(current_time).split(":")
     current_time_stamp = int(times[0]) * 3600 + int(times[1]) * 60 + int(times[2]) #convert to seconds
-    time_span = 1/3600 #if there is no previous time stamp, assume 1s
+    time_span = 1 #if there is no previous time stamp, assume 1s
     if last_time_stamp is not None:
-        time_span = (current_time_stamp - last_time_stamp)/3600.0
+        time_span = (current_time_stamp - last_time_stamp)
         if time_span > 2: #if time between time stamps is too long, assume 1s
-            time_span = 1/3600
+            time_span = 1
     last_time_stamp = current_time_stamp
 
-    if time_span >= 1/3600: #only care if a second has passed
+    if time_span >= 1: #only care if a second has passed
         
         #convert variables from byte-strings to ints/floats        
         motor_power = motor_current * motor_voltage
@@ -113,9 +109,7 @@ def parse_data(time_stamp, msg_id, data):
         excelFile.write(str(vehicle_speed) + ",")                           #Vehicle Speed
         excelFile.write(str(motor_velocity) + ",")                          #Motor Velocity
 
-        if thirty_second_time_stamp is not None:
-            print current_time_stamp - thirty_second_time_stamp
-        if thirty_second_time_stamp == None or (current_time_stamp - thirty_second_time_stamp) > 30:        
+        if thirty_second_time_stamp == None or (current_time_stamp - thirty_second_time_stamp) >= 30:        
             excelFile.write(str(soc/30.0) + ",")                            #State Of Charge
             excelFile.write(str(time_charging/30.0) + ",")                  #Time Charging
             excelFile.write(str(vehicle_on_time/30.0) + ",")                #Vehicle On Time
@@ -128,12 +122,15 @@ def parse_data(time_stamp, msg_id, data):
 
 
 #process all of the files in the Datalogs directory that end in .txt
+for file in os.listdir("."):
+    if file.endswith(".csv"):
+        os.remove(file)
 for file in os.listdir("Datalogs"):
     if file.endswith(".log"):
-        with open(file, 'r+') as f: #open files as read only
+        with open("Datalogs\\" + file, 'r+') as f: #open files as read only
 
             #create & start the excel file that will house the parsed data
-            fileName = file[:len(file)-6] + ".csv" #strip off the two digits for hours and the ".txt"
+            fileName = file[:len(file)-4] + ".csv" #strip off the two digits for hours and the ".log"
             file_existed = False
             if os.path.exists(fileName):
                 file_existed = True
@@ -162,12 +159,16 @@ for file in os.listdir("Datalogs"):
 
             for line in f:
                 data = line.strip().split(" ")
-                msg = data[2].strip().split("#")
-                parse_data(float(data[0][1:-1]), msg[0], msg[1]) #time stamp, message id, message
+                try:
+                    msg = data[2].strip().split("#")
+                    parse_data(float(data[0][1:-1]), msg[0], msg[1]) #time stamp, message id, message
+                except IndexError:
+                    print "Index Error: list index out of range"
+                    pass
 
         #Write summations to first and second lines in the .csv file.
         excelFile = open(fileName, 'r+')
         excelFile.seek(0)
         excelFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
-        excelFile.write("DATE" +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
+        excelFile.write(fileName[8:-11] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
         excelFile.close()
