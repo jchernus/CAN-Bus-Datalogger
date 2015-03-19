@@ -1,0 +1,2 @@
+python parse_file_Pi.py `find Datalogs/ -type f -name "candump*.log"`
+pause

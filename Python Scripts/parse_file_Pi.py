@@ -1,4 +1,6 @@
-import os
+#!/usr/bin/python
+
+import os, sys
 from time import localtime, strftime
 
 battery_current = battery_voltage = battery_power_in = battery_power_out = mc_cap_voltage = motor_current = 0
@@ -10,13 +12,16 @@ odometer = hours_charging = hours_operating = hours_running = battery_energy = m
 
 last_time_stamp = thirty_second_time_stamp = None
 
+path = ""
+#path = path[:-1]
+
 #confirm your original path
-print("Path at terminal when executing this file")
-print(os.getcwd() + "\n")
+#print("Path at terminal when executing this file")
+#print(os.getcwd() + "\n")
 
 #create the paths that are needed to store files
-if (not os.path.exists("Datalogs")):
-    os.mkdir("Datalogs")
+if (not os.path.exists("/data/scripts/Datalogs")):
+    os.mkdir("/data/scripts/Datalogs")
 #if (not os.path.exists("Datalogs/RAW")):
     #os.mkdir("Datalogs/RAW")
 
@@ -30,7 +35,7 @@ def parse_data(time_stamp, msg_id, data):
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
         if (battery_current >= 32768):                                      #Signed 16bit
             battery_current = -1 * (battery_current - 32768)
-        battery_current /= 10
+        battery_current /= 10.0
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_in = battery_current * battery_voltage
@@ -57,7 +62,7 @@ def parse_data(time_stamp, msg_id, data):
         #motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16)
 
     elif (msg_id == "294"):
-        mc_battery_current = int(data[14] + data[15] + data[12] + data[13], 16)
+        mc_battery_current = int(data[14] + data[15] + data[12] + data[13], 16) * 0.0625
 
     elif (msg_id == "306"):
         vehicle_speed = int(data[6] + data[7] + data[4] + data[5], 16)
@@ -122,53 +127,60 @@ def parse_data(time_stamp, msg_id, data):
 
 
 #process all of the files in the Datalogs directory that end in .txt
-for file in os.listdir("."):
-    if file.endswith(".csv"):
-        os.remove(file)
-for file in os.listdir("Datalogs"):
-    if file.endswith(".log"):
-        with open("Datalogs\\" + file, 'r+') as f: #open files as read only
+##for file in os.listdir("Datalogs"):
+##    if file.endswith(".csv"):
+##        os.remove("Datalogs//" + file)
 
-            #create & start the excel file that will house the parsed data
-            fileName = file[:len(file)-4] + ".csv" #strip off the two digits for hours and the ".log"
-            file_existed = False
-            if os.path.exists(fileName):
-                file_existed = True
+##cmdargs = []
+##for file in os.listdir("\data\scripts\Datalogs"):
+##    if file.endswith(".log"):
+##        cmdargs.append("\data\scripts\Datalogs\\" + file)
+
+cmdargs = sys.argv[1:]
+
+for file in cmdargs:
+    with open(path + file, 'r+') as f: #open files as read only
+
+        #create & start the excel file that will house the parsed data
+        fileName = file[:len(file)-4] + ".csv" #strip off the two digits for hours and the ".log"
+        file_existed = False
+        if os.path.exists(fileName):
+            file_existed = True
+            
+        if file_existed: #read in existing values
+            with open(fileName, 'r+') as parsedFile:
+                line = parsedFile.readline() #ignore the first line
+                line = parsedFile.readline() #we want this second line
+                sums = line.strip().split(",")
+
+                print len(sums)
+                print sums
+                odometer = float(sums[1])
+                battery_energy = float(sums[2])
+                motor_energy = float(sums[3])
+                aux_energy = float(sums[4])
+                hours_charging = float(sums[5])
+                hours_running = float(sums[6])
+                hours_operating = float(sums[7])
                 
-            if file_existed: #read in existing values
-                with open(fileName, 'r+') as parsedFile:
-                    line = parsedFile.readline() #ignore the first line
-                    line = parsedFile.readline() #we want this second line
-                    sums = line.strip().split(",")
+        excelFile = open(path + fileName, 'a+')
+        if not file_existed: #the file was just created, add the top column headings
+            excelFile.write('\n                                                                                                                                                                                                                     ')
+            excelFile.write('\n                                                                                                                                                                                                                                           ')
+            excelFile.write('\nTime Stamp, Battery Amperage, Battery Voltage, Battery Power In, Battery Power Out, Motor Current, Motor Voltage, Motor Power, Auxiliary Power, Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity, SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
 
-                    print len(sums)
-                    print sums
-                    odometer = float(sums[1])
-                    battery_energy = float(sums[2])
-                    motor_energy = float(sums[3])
-                    aux_energy = float(sums[4])
-                    hours_charging = float(sums[5])
-                    hours_running = float(sums[6])
-                    hours_operating = float(sums[7])
-                    
-            excelFile = open(fileName, 'a+')
-            if not file_existed: #the file was just created, add the top column headings
-                excelFile.write('\n                                                                                                                                                                                                                     ')
-                excelFile.write('\n                                                                                                                                                                                                                                           ')
-                excelFile.write('\nTime Stamp, Battery Amperage, Battery Voltage, Battery Power In, Battery Power Out, Motor Current, Motor Voltage, Motor Power, Auxiliary Power, Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity, SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
+        for line in f:
+            data = line.strip().split(" ")
+            try:
+                msg = data[2].strip().split("#")
+                parse_data(float(data[0][1:-1]), msg[0], msg[1]) #time stamp, message id, message
+            except IndexError:
+                print "Index Error: list index out of range. ie. I finished parsing."
+                pass
 
-            for line in f:
-                data = line.strip().split(" ")
-                try:
-                    msg = data[2].strip().split("#")
-                    parse_data(float(data[0][1:-1]), msg[0], msg[1]) #time stamp, message id, message
-                except IndexError:
-                    print "Index Error: list index out of range"
-                    pass
-
-        #Write summations to first and second lines in the .csv file.
-        excelFile = open(fileName, 'r+')
-        excelFile.seek(0)
-        excelFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
-        excelFile.write(fileName[8:-11] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
-        excelFile.close()
+    #Write summations to first and second lines in the .csv file.
+    excelFile = open(path + fileName, 'r+')
+    excelFile.seek(0)
+    excelFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
+    excelFile.write(fileName[8:-11] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
+    excelFile.close()
