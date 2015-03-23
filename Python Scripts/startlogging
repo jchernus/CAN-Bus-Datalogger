@@ -1,0 +1,7 @@
+#!/bin/bash
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+cd /data/scripts/Datalogs
+sudo killall candump
+(candump -l can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff)&

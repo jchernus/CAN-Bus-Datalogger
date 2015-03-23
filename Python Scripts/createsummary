@@ -1,0 +1,5 @@
+#!/bin/bash
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+(python /data/scripts/update_summary.py `find /data/scripts/Datalogs/ -type f -name "*.csv" -mmin +4`;)&
