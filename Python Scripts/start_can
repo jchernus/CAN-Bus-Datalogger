@@ -1,6 +1,5 @@
 #!/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-
 ip link set can0 type can bitrate 500000 listen-only on
 ip link set can0 up
