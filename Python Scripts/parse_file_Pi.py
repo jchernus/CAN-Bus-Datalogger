@@ -6,7 +6,6 @@ from time import localtime, strftime
 battery_current = battery_voltage = battery_power_in = battery_power_out = mc_cap_voltage = motor_current = 0
 motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = 0
 soc = time_charging = vehicle_on_time = run_hours = 0
-_soc = _time_charging = _vehicle_on_time = _run_hours = 0
 
 odometer = hours_charging = hours_operating = hours_running = battery_energy = motor_energy = aux_energy = 0
 
@@ -29,7 +28,6 @@ def parse_data(time_stamp, msg_id, data):
     global battery_current, battery_voltage, battery_power_in, battery_power_out, mc_cap_voltage, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
     global last_time_stamp, thirty_second_time_stamp, odometer, hours_charging, hours_operating, hours_running, battery_energy, motor_energy, aux_energy
     global soc, time_charging, vehicle_on_time, run_hours
-    global _soc, _time_charging, _vehicle_on_time, _run_hours
 
     if (msg_id == "477"):
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
@@ -43,13 +41,13 @@ def parse_data(time_stamp, msg_id, data):
             battery_power_in = -1 * battery_power_out
             battery_power_out = 0
 
-        _soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
+        soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
         
         data_6 = str(bin(int(data[12] + data[13], 16)))[2:]
         while (len(data_6) < 8):
             data_6 = '0' + data_6
-        _time_charging = int(data_6[3])
-        _vehicle_on_time = int(data_6[4])
+        time_charging = int(data_6[3])
+        vehicle_on_time = int(data_6[4])
 
     elif (msg_id == "478"):     # same at 477 but on charge
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
@@ -63,19 +61,19 @@ def parse_data(time_stamp, msg_id, data):
             battery_power_in = -1 * battery_power_out
             battery_power_out = 0
 
-        _soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
+        soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
         
         data_6 = str(bin(int(data[12] + data[13], 16)))[2:]
         while (len(data_6) < 8):
             data_6 = '0' + data_6
-        _time_charging = int(data_6[3])
-        _vehicle_on_time = int(data_6[4])
+        time_charging = int(data_6[4])
+        vehicle_on_time = int(data_6[3])
         
     elif (msg_id == "475"):
         mc_cap_voltage = int(data[2] + data[3] + data[0] + data[1], 16)/16.0
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
         if (int(data[10] + data[11], 16) > 0):
-            _run_hours = 1
+            run_hours = 1
 
     elif (msg_id == "270"):
         motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16)
@@ -112,11 +110,7 @@ def parse_data(time_stamp, msg_id, data):
             time_span = 1
     last_time_stamp = current_time_stamp
 
-    if time_span >= 1: #only care if two seconds have passed (first one is accounted for by last log)
-        
-        #convert variables from byte-strings to ints/floats        
-        motor_power = motor_current * motor_voltage
-        aux_power = battery_power_out - motor_power
+    if time_span >= 1:
     
         #integrate certain variables to gets sums
         odometer += (vehicle_speed * time_span)/3600.0
@@ -124,13 +118,6 @@ def parse_data(time_stamp, msg_id, data):
         hours_operating += (vehicle_on_time * time_span)/3600.0
         hours_running += (run_hours  * time_span)/3600.0
         battery_energy += (battery_power_in * time_span)/3600.0
-        motor_energy += (motor_power * time_span)/3600.0
-        #aux_energy += (aux_power * time_span)/3600.0
-
-        soc += _soc
-        time_charging += _time_charging
-        vehicle_on_time += _vehicle_on_time
-        run_hours += _run_hours
 
         #write values to excel
         excelFile.write(current_time + ",")                                 #Time Stamp
@@ -140,29 +127,15 @@ def parse_data(time_stamp, msg_id, data):
         excelFile.write(str(battery_power_out) + ",")                       #Battery Power Out
         excelFile.write(str(motor_current) + ",")                           #Motor Current
         excelFile.write(str(motor_voltage) + ",")                           #Motor Voltage
-        excelFile.write(str(motor_power) + ",")                             #Motor Power
-        excelFile.write(str(aux_power) + ",")                               #Auxiliary Power
         excelFile.write(str(mc_battery_current) + ",")                      #Motor Controller Battery Current
         excelFile.write(str(mc_cap_voltage) + ",")                          #Motor Controller Capacitor Voltage
         excelFile.write(str(vehicle_speed) + ",")                           #Vehicle Speed
         excelFile.write(str(motor_velocity) + ",")                          #Motor Velocity
-
-        if thirty_second_time_stamp == None or (current_time_stamp - thirty_second_time_stamp) >= 30:
-
-            if thirty_second_time_stamp is not None:
-                soc = soc/30.0
-                time_charging = time_charging/30.0
-                vehicle_on_time = vehicle_on_time/30.0
-                run_hours = run_hours/30.0
-                
-            excelFile.write(str(soc) + ",")                            #State Of Charge
-            excelFile.write(str(time_charging) + ",")                  #Time Charging
-            excelFile.write(str(vehicle_on_time) + ",")                #Vehicle On Time
-            excelFile.write(str(run_hours) + ",")                      #Vehicle Run Hours
-            
-            soc = time_charging = vehicle_on_time = run_hours = 0
-            
-            thirty_second_time_stamp = current_time_stamp
+               
+        excelFile.write(str(soc) + ",")                                     #State Of Charge
+        excelFile.write(str(time_charging) + ",")                           #Time Charging
+        excelFile.write(str(vehicle_on_time) + ",")                         #Vehicle On Time
+        excelFile.write(str(run_hours) + ",")                               #Vehicle Run Hours
             
         excelFile.write("\n")
 
@@ -190,17 +163,15 @@ for file in cmdargs:
 
                 odometer = float(sums[1])
                 battery_energy = float(sums[2])
-                motor_energy = float(sums[3])
-                aux_energy = float(sums[4])
-                hours_charging = float(sums[5])
-                hours_running = float(sums[6])
-                hours_operating = float(sums[7])
+                hours_charging = float(sums[3])
+                hours_running = float(sums[4])
+                hours_operating = float(sums[5])
                 
         excelFile = open(path + fileName, 'a+')
         if not file_existed: #the file was just created, add the top column headings
             excelFile.write('\n                                                                                                                                                                                                                     ')
             excelFile.write('\n                                                                                                                                                                                                                                           ')
-            excelFile.write('\nTime Stamp, Battery Current, Battery Voltage, Battery Power In, Battery Power Out, Motor Current (AC), Motor Voltage (AC), Motor Power, Auxiliary Power, Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity (RPM), SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
+            excelFile.write('\nTime Stamp, Battery Current, Battery Voltage, Battery Power In, Battery Power Out, Motor Current (AC), Motor Voltage (AC), Motor Controller Battery Current, Motor Controller Capacitor Voltage, Vehicle Speed, Motor Velocity (RPM), SOC, Time Charging, Time Operating, Vehicle Run Hours \n')
 
         for line in f:
             data = line.strip().split(" ")
@@ -213,6 +184,6 @@ for file in cmdargs:
     #Write summations to first and second lines in the .csv file.
     excelFile = open(path + fileName, 'r+')
     excelFile.seek(0)
-    excelFile.write('Date, Odometer, Battery Energy, Motor Energy, Auxiliary Energy, Hours Charging, Hours Running, Hours On\n')
-    excelFile.write(fileName[31:-4] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(motor_energy) +  ',' + str(aux_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
+    excelFile.write('Date, Odometer, Battery Energy, Hours Charging, Hours Running, Hours On\n')
+    excelFile.write(fileName[31:-4] +  ',' + str(odometer) +  ',' + str(battery_energy) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
     excelFile.close()

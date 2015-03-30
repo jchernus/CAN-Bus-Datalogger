@@ -2,17 +2,16 @@
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-FILESYSTEM=/dev/sda1 # or whatever filesystem to monitor
+FILESYSTEM=/dev/root # or whatever filesystem to monitor
 CAPACITY=95 # delete if FS is over 95% of usage 
 CACHEDIR=/data/DailyLogs
 
 # Proceed if filesystem capacity is over than the value of CAPACITY (using df POSIX syntax)
 # using [ instead of [[ for better error handling.
-if [ $(df -P $FILESYSTEM | awk '{ gsub("%",""); capacity = $5 }; END { print capacity }') -gt $CAPACITY ]
-then
-	cd /data/dailylogs
+cd /data/dailylogs
+while [ $(df -P $FILESYSTEM | awk '{ gsub("%",""); capacity = $5 }; END { print capacity }') -gt $CAPACITY ]; do
     # lets do some secure removal (if $CACHEDIR is empty or is not a directory find will exit
     # with error which is quite safe for missruns.):
     #find "$CACHEDIR" --maxdepth 1 --type f -name "20*.csv" -ctime +2 -exec rm -f {} \;
-    find -type f -printf '%T+ %p\n' | sort | head -n 1 | xargs -0 rm
-fi
+    ls -1tr  | head -1 | xargs rm
+done

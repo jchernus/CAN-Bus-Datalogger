@@ -1,8 +1,6 @@
 #!/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-export DISPLAY=:0.0
 #make-run.sh
-#make sure a process is always running
 
 process=mcp251x_wq
 makerun="/data/scripts/start_can"
