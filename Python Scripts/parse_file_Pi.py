@@ -35,7 +35,7 @@ def parse_data(time_stamp, msg_id, data):
         battery_current /= 10.0
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
-        battery_power_operating = battery_current * battery_voltage
+        battery_power_operating = battery_current * battery_voltage / 1000.0
         if (isCharging):
             battery_power_operating = 0 #don't show current in operating, it's going to be in charging
 
@@ -54,7 +54,7 @@ def parse_data(time_stamp, msg_id, data):
         battery_current /= 10.0
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
-        battery_power_charging = battery_current * battery_voltage
+        battery_power_charging = battery_current * battery_voltage / 1000.0
 
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
         
@@ -172,14 +172,14 @@ for file in cmdargs:
                 battery_energy_operating = float(sums[2])
                 battery_energy_charging = float(sums[3])
                 hours_charging = float(sums[4])
-                hours_running = float(sums[5])
-                hours_operating = float(sums[6])
+                hours_operating = float(sums[5])
+                hours_running = float(sums[6])
                 
         excelFile = open(path + fileName, 'a+')
         if not file_existed: #the file was just created, add the top column headings
-            excelFile.write('\n                                                                                                                                                                                                                     ')
-            excelFile.write('\n                                                                                                                                                                                                                                           ')
-            excelFile.write('\nTime Stamp, Battery Current, Battery Voltage, Battery Power Out (Operating), Battery Power In (Charging), Motor Current (AC), Motor Voltage (AC), Vehicle Speed (km/h), Motor Velocity (RPM), SOC (%), Time Charging (h), Time Operating (h), Vehicle Run Hours (h)\n')
+            excelFile.write('\n                                                                                                                                                                                                                          ')
+            excelFile.write('\n                                                                                                                                                                                                                                                ')
+            excelFile.write('\n\nTime Stamp, Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Vehicle Speed [km/h], Motor Velocity [RPM], SOC [%], Time Charging [h], Time Operating [h], Vehicle Run Hours [h]\n')
 
         for line in f:
             data = line.strip().split(" ")
@@ -192,6 +192,6 @@ for file in cmdargs:
     #Write summations to first and second lines in the .csv file.
     excelFile = open(path + fileName, 'r+')
     excelFile.seek(0)
-    excelFile.write('Date, Odometer, Battery Energy Out (Operating), Battery Energy In (Charging), Hours Charging, Hours Running, Hours On\n')
-    excelFile.write(fileName[31:-4] +  ',' + str(odometer) +  ',' + str(battery_energy_operating) +  ',' + str(battery_energy_charging) +  ',' + str(hours_charging) +  ',' + str(hours_running) +  ',' + str(hours_operating))
+    excelFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kJ], Battery Energy In (Charging)[kJ], Hours Charging [h], Hours Operating [h], Hours Running [h]\n')
+    excelFile.write(fileName[16:-4] +  ',' + str(odometer) +  ',' + str(battery_energy_operating) +  ',' + str(battery_energy_charging) +  ',' + str(hours_charging) +  ',' + str(hours_operating) +  ',' + str(hours_running))
     excelFile.close()
