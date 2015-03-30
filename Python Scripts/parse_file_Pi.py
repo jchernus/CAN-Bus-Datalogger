@@ -163,17 +163,26 @@ for file in cmdargs:
             file_existed = True
             
         if file_existed: #read in existing values
-            with open(fileName, 'r+') as parsedFile:
-                line = parsedFile.readline() #ignore the first line
-                line = parsedFile.readline() #we want this second line
-                sums = line.strip().split(",")
+            try:
+                with open(fileName, 'r+') as parsedFile:
+                    line = parsedFile.readline() #ignore the first line
+                    line = parsedFile.readline() #we want this second line
+                    sums = line.strip().split(",")
 
-                odometer = float(sums[1])
-                battery_energy_operating = float(sums[2])
-                battery_energy_charging = float(sums[3])
-                hours_charging = float(sums[4])
-                hours_operating = float(sums[5])
-                hours_running = float(sums[6])
+                    odometer = float(sums[1])
+                    battery_energy_operating = float(sums[2])
+                    battery_energy_charging = float(sums[3])
+                    hours_charging = float(sums[4])
+                    hours_operating = float(sums[5])
+                    hours_running = float(sums[6])
+                        
+            except ValueError: #variables garbled, can't convert into floats
+                try: 
+                    os.rename(fileName, fileName[0:-4] + "_Error" + ".csv")
+                except: # may already exist, just delete the older one then
+                    os.remove(fileName[0:-4] + "_Error" + ".csv")
+                    os.rename(fileName, fileName[0:-4] + "_Error" + ".csv")
+                file_existed = False
                 
         excelFile = open(path + fileName, 'a+')
         if not file_existed: #the file was just created, add the top column headings
