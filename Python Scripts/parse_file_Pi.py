@@ -157,7 +157,7 @@ for file in cmdargs:
     with open(path + file, 'r+') as f: #open files as read only
 
         #create & start the excel file that will house the parsed data
-        fileName = file[:6] + "dailylogs" + file[9:10] + file[18:len(file)-11] + ".csv" #strip off the two digits for hours and the ".log"      #/data/RAW/candump-2015-02-16_113546.log
+        fileName = file[:6] + "dailylogs" + file[9:10] + "_" + file[18:len(file)-11] + ".csv" #strip off the two digits for hours and the ".log"      #/data/RAW/candump-2015-02-16_113546.log
         file_existed = False
         if os.path.exists(fileName):
             file_existed = True
@@ -176,7 +176,7 @@ for file in cmdargs:
                     hours_operating = float(sums[5])
                     hours_running = float(sums[6])
                         
-            except ValueError: #variables garbled, can't convert into floats
+            except (ValueError, IndexError): #variables garbled, can't convert into floats
                 try: 
                     os.rename(fileName, fileName[0:-4] + "_Error" + ".csv")
                 except: # may already exist, just delete the older one then
@@ -188,7 +188,7 @@ for file in cmdargs:
         if not file_existed: #the file was just created, add the top column headings
             excelFile.write('\n                                                                                                                                                                                                                          ')
             excelFile.write('\n                                                                                                                                                                                                                                                ')
-            excelFile.write('\n\nTime Stamp, Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Vehicle Speed [km/h], Motor Velocity [RPM], SOC [%], Time Charging [h], Time Operating [h], Vehicle Run Hours [h]\n')
+            excelFile.write('\n\nTime Stamp, Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Vehicle Speed [km/h], Motor Velocity [RPM], SOC [%], Charging, Operating, Running\n')
 
         for line in f:
             data = line.strip().split(" ")
@@ -202,5 +202,5 @@ for file in cmdargs:
     excelFile = open(path + fileName, 'r+')
     excelFile.seek(0)
     excelFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kJ], Battery Energy In (Charging)[kJ], Hours Charging [h], Hours Operating [h], Hours Running [h]\n')
-    excelFile.write(fileName[16:-4] +  ',' + str(odometer) +  ',' + str(battery_energy_operating) +  ',' + str(battery_energy_charging) +  ',' + str(hours_charging) +  ',' + str(hours_operating) +  ',' + str(hours_running))
+    excelFile.write(fileName[17:-4] +  ',' + str(odometer) +  ',' + str(battery_energy_operating) +  ',' + str(battery_energy_charging) +  ',' + str(hours_charging) +  ',' + str(hours_operating) +  ',' + str(hours_running))
     excelFile.close()

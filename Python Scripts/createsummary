@@ -2,4 +2,4 @@
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-(python /data/scripts/update_summary.py `find /data/dailylogs -type f -name "*.csv" -mmin +4`;)&
+(python /data/scripts/update_summary.py `find /data/dailylogs -type f -name "_*.csv" -mmin +4`;)&
