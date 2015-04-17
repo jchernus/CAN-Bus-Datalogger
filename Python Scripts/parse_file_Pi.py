@@ -9,7 +9,7 @@ soc = isCharging = isOperating = isRunning = 0
 
 odometer = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
 
-last_time_stamp = thirty_second_time_stamp = None
+last_time_stamp = None
 
 path = ""
 
@@ -26,7 +26,7 @@ def twos_comp(val, bits):
 
 def parse_data(time_stamp, msg_id, data):
     global battery_current, battery_voltage, battery_power_operating, battery_power_charging, mc_cap_voltage, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
-    global last_time_stamp, thirty_second_time_stamp, odometer, hours_charging, hours_operating, hours_running, battery_energy_operating, battery_energy_charging
+    global last_time_stamp, odometer, hours_charging, hours_operating, hours_running, battery_energy_operating, battery_energy_charging
     global soc, isCharging, isOperating, isRunning
 
     if (msg_id == "477"):
