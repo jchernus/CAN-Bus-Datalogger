@@ -48,7 +48,7 @@ def parse_data(time_stamp, msg_id, data):
 ##        isOperating = int(data_6[4])
         isOperating = 1  
 
-    elif (msg_id == "478"):     # same at 477 but on charge
+    elif (msg_id == "478"):     # same as 477 but on charge
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
         battery_current = twos_comp(battery_current, 16)
         battery_current /= 10.0
@@ -136,8 +136,8 @@ def parse_data(time_stamp, msg_id, data):
         excelFile.write(str(motor_velocity) + ",")                          #Motor Velocity
                
         excelFile.write(str(soc) + ",")                                     #State Of Charge
-        excelFile.write(str(isCharging) + ",")                           #Time Charging
-        excelFile.write(str(isOperating) + ",")                         #Vehicle On Time
+        excelFile.write(str(isCharging) + ",")                              #Time Charging
+        excelFile.write(str(isOperating) + ",")                             #Vehicle On Time
         excelFile.write(str(isRunning) + ",")                               #Vehicle Run Hours
             
         excelFile.write("\n")
