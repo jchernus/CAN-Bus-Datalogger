@@ -1,0 +1,13 @@
+https://www.raspberrypi.org/forums/viewtopic.php?f=44&t=16218
+
+by psergiu » Sat Oct 13, 2012 12:59 am
+Try making the symlinks by hand and re-run ...
+CODE: SELECT ALL
+cd /etc/rc0.d
+ln -s ../init.d/hwclock.sh K06hwclock.sh
+cd ../rc6.d
+ln -s ../init.d/hwclock.sh K06hwclock.sh
+cd ../rcS.d
+ln -s ../init.d/hwclock.sh S10hwclock.sh
+
+S10hwclock.sh was missing. Created it with sudo.

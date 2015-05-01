@@ -90,13 +90,13 @@ def parse_data(time_stamp, msg_id, data):
             str_vs = str_vs[1:] #get rid of an extra digit because of the '-'
         while (len(str_vs) < 16):
             str_vs = '0' + str_vs
-        vehicle_speed = float(str(int(str_vs[0:-4],2)) + '.' + str(int(str_vs[-4:],2))) #Convert to 12.4 format.
+        vehicle_speed = int(str_vs[0:-4],2) + (0.0625 * int(str_vs[-4:],2)) #Convert to 12.4 format.
         if isNegative:
             vehicle_speed *= -1
         motor_velocity = int(data[14] + data[15] + data[12] + data[13] + data[10] + data[11] + data[8] + data[9], 16) #Something special needs to be done with this
         motor_velocity = twos_comp(motor_velocity, 32)
 
-        if vehicle_speed <= -0.1 or vehicle_speed >= 0.1:
+        if vehicle_speed <= -0.062 or vehicle_speed >= 0.062:
             isRunning = 1
         else:
             isRunning = 0
@@ -178,10 +178,10 @@ for file in cmdargs:
                         
             except (ValueError, IndexError): #variables garbled, can't convert into floats
                 try: 
-                    os.rename(fileName, fileName[0:-4] + "_Error" + ".csv")
+                    os.rename(fileName, fileName[:-15] + "Error" + fileName[-15:])
                 except: # may already exist, just delete the older one then
-                    os.remove(fileName[0:-4] + "_Error" + ".csv")
-                    os.rename(fileName, fileName[0:-4] + "_Error" + ".csv")
+                    os.remove(fileName[:-15] + "Error" + fileName[-15:])
+                    os.rename(fileName, fileName[:-15] + "Error" + fileName[-15:])
                 file_existed = False
                 
         excelFile = open(path + fileName, 'a+')
@@ -202,5 +202,44 @@ for file in cmdargs:
     excelFile = open(path + fileName, 'r+')
     excelFile.seek(0)
     excelFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kJ], Battery Energy In (Charging)[kJ], Hours Charging [h], Hours Operating [h], Hours Running [h]\n')
-    excelFile.write(fileName[17:-4] +  ',' + str(odometer) +  ',' + str(battery_energy_operating) +  ',' + str(battery_energy_charging) +  ',' + str(hours_charging) +  ',' + str(hours_operating) +  ',' + str(hours_running))
+
+    #Convert all of the variables to strings and ensure they are at least 16 characters long each, this will prevent them from writing over the old date and causing "10.07.07"
+
+    str_odometer = str(odometer)
+    if (len(str_odometer) > 16):
+        str_odometer = str_odometer[:16]
+    while (len(str_odometer) < 16):
+        str_odometer = '0' + str_odometer
+
+    str_battery_energy_operating = str(battery_energy_operating)
+    if (len(str_battery_energy_operating) > 16):
+        str_battery_energy_operating = str_battery_energy_operating[:16]
+    while (len(str_battery_energy_operating) < 16):
+        str_battery_energy_operating = '0' + str_battery_energy_operating
+
+    str_battery_energy_charging = str(battery_energy_charging)
+    if (len(str_battery_energy_charging) > 16):
+        str_battery_energy_charging = str_battery_energy_charging[:16]
+    while (len(str_battery_energy_charging) < 16):
+        str_battery_energy_charging = '0' + str_battery_energy_charging
+
+    str_hours_charging = str(hours_charging)
+    if (len(str_hours_charging) > 16):
+        str_hours_charging = str_hours_charging[:16]
+    while (len(str_hours_charging) < 16):
+        str_hours_charging = '0' + str_hours_charging
+
+    str_hours_operating = str(hours_operating)
+    if (len(str_hours_operating) > 16):
+        str_hours_operating = str_hours_operating[:16]
+    while (len(str_hours_operating) < 16):
+        str_hours_operating = '0' + str_hours_operating
+
+    str_hours_running = str(hours_running)
+    if (len(str_hours_running) > 16):
+        str_hours_running = str_hours_running[:16]
+    while (len(str_hours_running) < 16):
+        str_hours_running = '0' + str_hours_running
+    
+    excelFile.write(fileName[17:-4] +  ',' + str_odometer +  ',' + str_battery_energy_operating +  ',' + str_battery_energy_charging +  ',' + str_hours_charging +  ',' + str_hours_operating +  ',' + str_hours_running)
     excelFile.close()
