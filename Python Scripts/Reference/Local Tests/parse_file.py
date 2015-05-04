@@ -15,10 +15,6 @@ last_time_stamp = None
 
 path = ""
 
-#create the paths that are needed to store files
-if (not os.path.exists("/data/dailylogs")):
-    os.mkdir("/data/dailylogs")
-
 def twos_comp(val, bits):
     """compute the 2's compliment of int value val"""
     val = int(val)
@@ -191,17 +187,22 @@ def parse_data(time_stamp, msg_id, data):
 ##    if file.endswith(".log"):
 ##        cmdargs.append("\data\scripts\Datalogs\\" + file)
 
-cmdargs = sys.argv[1:]
+cmdargs = os.listdir("C:\Users\jchernushevich\Desktop\May") # list of files that end in .csv and were not modified in the last hour
+print cmdargs
+cmdargs = cmdargs[:2]
+print cmdargs
 
 for file in cmdargs:
     with open(path + file, 'r+') as f: #open files as read only
 
         #create & start the excel file that will house the parsed data
-        fileName = file[:6] + "dailylogs" + file[9:10] + "_" + file[18:len(file)-11] + ".csv" #strip off the two digits for hours and the ".log"      #/data/RAW/candump-2015-02-16_113546.log
+        fileName = "_" + file[8:-11] + ".csv" #strip off the two digits for hours and the ".log"      #/data/RAW/candump-2015-02-16_113546.log
+        print "Filename: " + fileName
         file_existed = False
         if os.path.exists(fileName):
             file_existed = True
-            
+            print "File existed"
+    
         if file_existed: #read in existing values
             try:
                 with open(fileName, 'r+') as parsedFile:
@@ -223,18 +224,20 @@ for file in cmdargs:
                     os.remove(fileName[:-15] + "Error" + fileName[-15:])
                     os.rename(fileName, fileName[:-15] + "Error" + fileName[-15:])
                 file_existed = False
+            print "Read in existing values."
                 
         excelFile = open(path + fileName, 'a+')
         if not file_existed: #the file was just created, add the top column headings
             excelFile.write('\n                                                                                                                                                                                                                          ')
             excelFile.write('\n                                                                                                                                                                                                                                                ')
             excelFile.write('\n\nTime Stamp, SOC [%], Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Motor Controller Capacitor Voltage [V], Vehicle Speed [km/h], Motor Velocity [RPM], Current Highest Priority Fault, Traction State, Maximum Battery Discharge Current [A], Maximum Battery Charge Current [A], Motor Temperature [Celcius], Motor Controller Heatsink Temperature [Celcius], Battery Pack Highest Temperature [Celcius], Batt High Temp ID, Batter Pack Lowest Temperature [Celcius], Batt Low Temp ID, Charging, Operating, Running\n')
-
+            print "Wrote top headers"
         for line in f:
             data = line.strip().split(" ")
             try:
                 msg = data[2].strip().split("#")
                 parse_data(float(data[0][1:-1]), msg[0], msg[1]) #time stamp, message id, message
+                print "Parsing line: " + data[0][1:-1]
             except IndexError:
                 pass
 
@@ -242,7 +245,7 @@ for file in cmdargs:
     excelFile = open(path + fileName, 'r+')
     excelFile.seek(0)
     excelFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging)[kWh], Hours Charging [h], Hours Operating [h], Hours Running [h]\n')
-
+    print "Wrote summary headers"
     #Convert all of the variables to strings and ensure they are at least 16 characters long each, this will prevent them from writing over the old date and causing "10.07.07"
 
     str_odometer = str(odometer)
@@ -250,7 +253,7 @@ for file in cmdargs:
         str_odometer = str_odometer[:16]
     while (len(str_odometer) < 16):
         str_odometer = '0' + str_odometer
-
+        print "wrote odometer"
     str_battery_energy_operating = str(battery_energy_operating)
     if (len(str_battery_energy_operating) > 16):
         str_battery_energy_operating = str_battery_energy_operating[:16]
@@ -259,7 +262,7 @@ for file in cmdargs:
             str_battery_energy_operating = str_battery_energy_operating[0:1] + '0' + str_battery_energy_operating[1:]
         elif (battery_energy_operating >= 0):
             str_battery_energy_operating = '0' + str_battery_energy_operating
-
+        print str_battery_energy_operating
     str_battery_energy_charging = str(battery_energy_charging)
     if (len(str_battery_energy_charging) > 16):
         str_battery_energy_charging = str_battery_energy_charging[:16]
@@ -268,7 +271,7 @@ for file in cmdargs:
             str_battery_energy_charging = str_battery_energy_charging[0:1] + '0' + str_battery_energy_charging[1:]
         elif (battery_energy_charging >= 0):
             str_battery_energy_charging = '0' + str_battery_energy_charging
-
+        print str_battery_energy_charging
     str_hours_charging = str(hours_charging)
     if (len(str_hours_charging) > 16):
         str_hours_charging = str_hours_charging[:16]
@@ -287,5 +290,5 @@ for file in cmdargs:
     while (len(str_hours_running) < 16):
         str_hours_running = '0' + str_hours_running
     
-    excelFile.write(fileName[17:-4] +  ',' + str_odometer +  ',' + str_battery_energy_operating +  ',' + str_battery_energy_charging +  ',' + str_hours_charging +  ',' + str_hours_operating +  ',' + str_hours_running)
+    excelFile.write(fileName[1:-4] +  ',' + str_odometer +  ',' + str_battery_energy_operating +  ',' + str_battery_energy_charging +  ',' + str_hours_charging +  ',' + str_hours_operating +  ',' + str_hours_running)
     excelFile.close()
