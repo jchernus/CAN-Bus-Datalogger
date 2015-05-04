@@ -25,5 +25,3 @@ iface wlan0 inet static
 #wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
 #iface default inet dhcp
 
-#up iptables-restore < /etc/iptables.ipv4.nat
-
