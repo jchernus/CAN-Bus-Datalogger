@@ -255,13 +255,19 @@ for file in cmdargs:
     if (len(str_battery_energy_operating) > 16):
         str_battery_energy_operating = str_battery_energy_operating[:16]
     while (len(str_battery_energy_operating) < 16):
-        str_battery_energy_operating = '0' + str_battery_energy_operating
+        if (battery_energy_operating < 0):
+            str_battery_energy_operating = str_battery_energy_operating[0:1] + '0' + str_battery_energy_operating[1:]
+        else if (battery_energy_operating > 0):
+            str_battery_energy_operating = '0' + str_battery_energy_operating
 
     str_battery_energy_charging = str(battery_energy_charging)
     if (len(str_battery_energy_charging) > 16):
         str_battery_energy_charging = str_battery_energy_charging[:16]
     while (len(str_battery_energy_charging) < 16):
-        str_battery_energy_charging = '0' + str_battery_energy_charging
+        if (battery_energy_charging < 0):
+            str_battery_energy_charging = str_battery_energy_charging[0:1] + '0' + str_battery_energy_charging[1:]
+        else if (battery_energy_charging > 0):
+            str_battery_energy_charging = '0' + str_battery_energy_charging
 
     str_hours_charging = str(hours_charging)
     if (len(str_hours_charging) > 16):
