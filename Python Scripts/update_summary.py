@@ -11,13 +11,36 @@ for file in cmdargs:
 		line = parsedFile.readline() #we want this second line
 		sums = line.strip().split(",")
 
-		date = sums[0]
-		odometer = float(sums[1])
-		battery_energy_operating = float(sums[2])
-		battery_energy_charging = float(sums[3])
-		hours_charging = float(sums[4])
-		hours_operating = float(sums[5])
-		hours_running = float(sums[6])
+		date = odometer = battery_energy_operating = battery_energy_charging = hours_charging = hours_operating = hours_running = None
+
+		try:
+			date = sums[0]
+		except:
+			date = "Error"
+		try:
+			odometer = float(sums[1])
+		except:
+			odometer = "Error"
+		try:
+			battery_energy_operating = float(sums[2])
+		except:
+			battery_energy_operating = "Error"
+		try:
+			battery_energy_charging = float(sums[3])
+		except:
+			battery_energy_charging = "Error"
+		try:
+			hours_charging = float(sums[4])
+		except:
+			hours_charging = "Error"
+		try:
+			hours_operating = float(sums[5])
+		except:
+			hours_operating = "Error"
+		try:
+			hours_running = float(sums[6])
+		except:
+			hours_running = "Error"
 		
 		#If summary file doesn't exist: make it and then write the header!
 		if (not os.path.exists("/data/summary/Summary.csv")):
