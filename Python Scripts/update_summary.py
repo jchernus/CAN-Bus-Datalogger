@@ -45,7 +45,7 @@ for file in cmdargs:
 		#If summary file doesn't exist: make it and then write the header!
 		if (not os.path.exists("/data/summary/Summary.csv")):
 			with open("/data/summary/Summary.csv", 'a+') as summaryFile:
-				summaryFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kJ], Battery Energy In (Charging)[kJ], Hours Charging [h], Hours Operating [h], Hours Running [h]')
+				summaryFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging)[kWh], Hours Charging [h], Hours Operating [h], Hours Running [h]')
 
 		#Append summations to summary file
 		with open("/data/summary/Summary.csv", 'a+') as summaryFile:
