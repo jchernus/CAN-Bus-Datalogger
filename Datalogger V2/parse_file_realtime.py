@@ -31,7 +31,6 @@ def parse_data(msg_id, data):
     
     pattern = re.compile(r'\s+')
     data = re.sub(pattern, '', data)
-    print data
     
     if (msg_id == "477"):
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
@@ -84,8 +83,8 @@ def parse_data(msg_id, data):
 ##        if (int(data[10] + data[11], 16) > 0):
 ##            isRunning = 1
 
-    elif (msg_id == "270"):
-        motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16) * 0.0625
+    ##elif (msg_id == "270"):
+        ##motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16) * 0.0625
 
     elif (msg_id == "294"):
         max_batt_charge_current = int(data[6] + data[7] + data[4] + data[5], 16)
@@ -127,14 +126,11 @@ while (True):
     p = subprocess.Popen("date +\"%F\"", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     filename = output.strip() + ".csv"
-    print "date: " + output
-    print "filename: " + output
 
     #Does a file for today's date already exist?
     file_existed = False
     if os.path.exists("NO"):
         #File exists, we need to read in existing data
-        print "File exists"
         file_existed = True
         try:
             with open(path + filename, 'r+') as parsedFile:
@@ -159,15 +155,12 @@ while (True):
 
     else:
         #File does not exist, we need to create it
-        print "File does not exist"
-        print "Creating file " + path + filename
         if not file_existed:
             excelFile = open(path + filename, 'w+')
             excelFile.write('\n                                                                                                                                                                                                                          ')
             excelFile.write('\n                                                                                                                                                                                                                                                ')
-            excelFile.write('\n\nTime Stamp, Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Vehicle Speed [km/h], Motor Velocity [RPM], SOC [%], Charging, Operating, Running\n')
+            excelFile.write('\n\nTime Stamp, SOC [%], Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Motor Controller Capacitor Voltage [V], Vehicle Speed [km/h], Motor Velocity [RPM], Current Highest Priority Fault, Traction State, Maximum Battery Discharge Current [A], Maximum Battery Charge Current [A], Motor Temperature [Celcius], Motor Controller Heatsink Temperature [Celcius], Battery Pack Highest Temperature [Celcius], Batt High Temp ID, Batter Pack Lowest Temperature [Celcius], Batt Low Temp ID, Charging, Operating, Running\n')
             excelFile.close()
-            print "Succeeded at writing to file"
             
     while(True):
         
@@ -175,40 +168,25 @@ while (True):
         p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
         lines = output.strip().split("\n")
-
-        print "Retrieved messages: "
         
         #parse messages
         for line in lines:
-            print line
             #try:
             data = line.strip().split("  ")
-            for datum in data:
-                print datum
-            print data[0].strip().split(" ")[1][:-1]
-            print data[2]
-            print data[3][3:].strip()
             parse_data(data[2], data[3][3:].strip()) #time stamp, message id, message
 ##            except:
 ##                print "Error parsing line: " + line
 ##                pass
-
-        print "Parsed messages"
 
         #get date & time
         p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
         current_date = output
 
-        print "Retrieved date: " + current_date
-
         #if new date, break
-        print "Current date: " + current_date[:10] + ", previous date: " + previous_date[:10]
         if (previous_date != "" and current_date[:10] != previous_date[:10]):
             print "Going to break"
             break     #this will exit this while loop and return to the parent one, creating a new file (with the new date)
-
-        print "Calculating time difference... "
         
         #calculate time difference between current and previous time stamps
         times = str(current_date[11:19]).split(":")
@@ -220,17 +198,14 @@ while (True):
                 time_span = 1
         previous_time = current_time
         previous_date = current_date
-
-        print "Time difference is " + str(time_span)
             
         #if less than a second
         if time_span >= 1:
             
             #write values to excel
-            print "Writing values to file"
             excelFile = open(path + filename, 'a+')
             
-            excelFile.write(str(current_time) + ",")                                 #Time Stamp
+            excelFile.write(str(current_date[11:19]) + ",")                                 #Time Stamp
                
             excelFile.write(str(soc) + ",")                                     #State Of Charge
             
@@ -334,8 +309,5 @@ while (True):
         motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
         max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
         batt_low_temp = batt_low_temp_id = isCharging = isOperating = isRunning = 0
-
-        #first run is just a trial, only run everything once.
-        break
     break
 
