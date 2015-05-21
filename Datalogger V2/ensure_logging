@@ -1,0 +1,15 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+#make-run.sh
+
+process="python /data/scripts/can_logging.py"
+makerun="/usr/bin/python /data/scripts/can_logging.py"
+
+if ps ax | grep -v grep | grep $process > /dev/null
+then
+    exit
+else
+    $makerun &
+fi
+
+exit

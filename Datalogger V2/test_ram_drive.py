@@ -8,7 +8,7 @@ count = 0
 while (True):
     p = subprocess.Popen("date +\"%F\"", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
-    logFile = open(path + filename, 'w+')
+    logFile = open(path + filename, 'a+')
     logFile.write(output.strip())
     time.sleep(1)
     count += 1

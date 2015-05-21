@@ -14,7 +14,7 @@ previous_time = 0
 
 counter = 0
 
-temppath = "/var/tmp/"
+temppath = "/var/tmp/logs/"
 permpath = "/data/dailylogs/"
 
 def twos_comp(val, bits):
@@ -134,15 +134,15 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     while(True): #Logging, a change of date or 300 seconds will break out of this loop
         
         #get x messages
-        p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff", stdout=subprocess.PIPE, shell=True)
+        p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
         lines = output.strip().split("\n")
         
         #parse messages
         for line in lines:
             try:
-            data = line.strip().split("  ")
-            parse_data(data[2], data[3][3:].strip()) #time stamp, message id, message
+                data = line.strip().split("  ")
+                parse_data(data[2], data[3][3:].strip()) #time stamp, message id, message
             except:
                 print "Error parsing line: " + line
                 pass
