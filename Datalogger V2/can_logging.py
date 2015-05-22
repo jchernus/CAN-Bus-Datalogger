@@ -173,7 +173,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
             #write values to excel
             excelFile = open(temppath + filename, 'a+')
             
-            excelFile.write(str(current_date[11:19]) + ",")                                 #Time Stamp
+            excelFile.write(str(current_date[11:19]) + ",")                     #Time Stamp
                
             excelFile.write(str(soc) + ",")                                     #State Of Charge
             
@@ -185,7 +185,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
             excelFile.write(str(motor_current) + ",")                           #Motor Current AC RMS
             excelFile.write(str(motor_voltage) + ",")                           #Motor Voltage AC RMS
             
-            excelFile.write(str(mc_battery_current) + ",")                      #Motor Controller Battery Current
+            #excelFile.write(str(mc_battery_current) + ",")                      #Motor Controller Battery Current
             excelFile.write(str(mc_cap_voltage) + ",")                          #Motor Controller Capacitor Voltage
 
             excelFile.write(str(vehicle_speed) + ",")                           #Vehicle Speed
@@ -262,6 +262,8 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
                 os.rename(temppath + filename, temppath + filename[0:-4] + "_Error" + ".csv")
         
     #Write summations to first and second lines in the .csv file.
+    excelFileTemp = open(permpath + filename, 'a+')
+    excelFileTemp.close()
     excelFile = open(permpath + filename, 'r+')
     excelFile.seek(0)
     excelFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging)[kWh], Hours Charging [h], Hours Operating [h], Hours Running [h]\n')

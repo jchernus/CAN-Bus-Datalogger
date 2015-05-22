@@ -1,6 +1,6 @@
 import subprocess, os, time
 
-path2 = "/data/dailylogs/continuous/"
+path = "/data/dailylogs/continuous/"
 filename = "testlog.txt"
 
 while (True):
