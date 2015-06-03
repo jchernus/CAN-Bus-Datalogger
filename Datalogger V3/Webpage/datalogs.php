@@ -108,7 +108,7 @@
 		</table>
 		
 		<div class="col-sm-offset-2 col-sm-10">
-			<a href="summary.php">Download Summary Log</a>
+			<a href="summary.php" class="btn btn-default">Download Summary Log</a>
 		</div>
 		
 		<br>
