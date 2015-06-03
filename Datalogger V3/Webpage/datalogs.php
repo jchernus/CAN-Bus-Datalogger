@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
     <title>Marmot D&D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +28,8 @@
     <link rel="apple-touch-icon-precomposed" sizes="72x72" href="assets/ico/apple-touch-icon-72-precomposed.png">
     <link rel="apple-touch-icon-precomposed" href="assets/ico/apple-touch-icon-57-precomposed.png">
     <link rel="shortcut icon" href="assets/ico/favicon.png">
-  <style type="text/css"></style></head>
+	<style type="text/css"></style>
+  </head>
 
   <body>
 
@@ -78,7 +80,7 @@
 					{
 						function __construct()
 						{
-							$this->open('Summary.db');
+							$this->open('/data/summary/Summary.db');
 						}
 					}
 					$db = new MyDB();
@@ -106,7 +108,7 @@
 		</table>
 		
 		<div class="col-sm-offset-2 col-sm-10">
-			<button type="submit" class="btn btn-default">Download Summary Log</button>
+			<a href="summary.php">Download Summary Log</a>
 		</div>
 		
 		<br>
@@ -124,7 +126,7 @@
 		</select>
 		
 		<div class="col-sm-offset-2 col-sm-10">
-			<button type="submit" class="btn btn-default">Download</button>
+			<button type="submit" class="btn btn-default" name="download_logs">Download</button>
 		</div>
     </div class="container"> <!-- /container -->
 
