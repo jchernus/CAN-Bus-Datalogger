@@ -7,6 +7,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
+	
+	<script> <!-- Used to retrieve selected values from the list of logs available.-->
+		function getSelectedValues()
+		{
+		  var result = [];
+		  var x=document.getElementById("select_logs");
+		  for (var i = 0; i < x.options.length; i++) {
+			 if (x.options[i].selected == true){
+				  result.push(x.options[i].value);
+			  }
+		  }
+		  return result;
+		}
+	</script>
 
     <!-- Le styles -->
     <link href="assets\css\bootstrap.css" rel="stylesheet">
@@ -76,14 +90,14 @@
 			<tbody>
 			
 				<?php
-					class MyDB extends SQLite3
+					class MySummaryDB extends SQLite3
 					{
 						function __construct()
 						{
 							$this->open('/data/summary/Summary.db');
 						}
 					}
-					$db = new MyDB();
+					$db = new MySummaryDB();
 					if(!$db){
 						echo $db->lastErrorMsg();
 					}
@@ -108,7 +122,7 @@
 		</table>
 		
 		<div class="col-sm-offset-2 col-sm-10">
-			<a href="summary.php" class="btn btn-default">Download Summary Log</a>
+			<button type="submit" class="btn btn-default" name="download_summary" onclick="document.location.href = 'summary.php';">Download Summary Log</button>
 		</div>
 		
 		<br>
@@ -117,17 +131,37 @@
 	<div class="container">
 		<h4>Detailed Logs</h4>
 		<p>Please select the days for which you would like to download logs, then press Download. Logs will be downloaded in a zip folder.</p>
-		<select multiple class="form-control" style="height:250px">
-			<option>2015-06-02</option>
-			<option>2015-06-01</option>
-			<option>2015-05-31</option>
-			<option>2015-05-30</option>
-			<option>2015-05-29</option>
-		</select>
-		
-		<div class="col-sm-offset-2 col-sm-10">
-			<button type="submit" class="btn btn-default" name="download_logs">Download</button>
-		</div>
+		<form action="downloadlogs.php" method="post">
+			<select multiple class="form-control" size="12" name="select_logs[]">
+				<?php
+					class MyDailyLogDB extends SQLite3
+					{
+						function __construct()
+						{
+							$this->open('/data/dailylogs/DailyLogs.db');
+						}
+					}
+					$db = new MyDailyLogDB();
+					if(!$db){
+						echo $db->lastErrorMsg();
+					}
+				   
+					$sql = "SELECT DISTINCT date FROM log ORDER BY date DESC ;";
+					$ret = $db->query($sql);
+					echo "<tr>";
+					while($row = $ret->fetchArray(SQLITE3_ASSOC) ){
+						echo "<option name = \"listBoxItems[]\" value = \"" . $row['date'] . "\">" . $row['date'] . "</options>";
+					}
+					echo "</tr>";
+					$db->close();
+				?>
+			</select>
+			
+			<div class="col-sm-offset-2 col-sm-10">
+				<button type="submit" name="Submit" class="btn btn-default">Download Logs</button> <!-- -->
+			</div>
+		</form>
+		<br><br>
     </div class="container"> <!-- /container -->
 
     <!-- Le javascript
