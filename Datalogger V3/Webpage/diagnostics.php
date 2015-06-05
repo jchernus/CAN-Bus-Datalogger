@@ -57,7 +57,7 @@
     </div class="container"> <!-- /container -->
 	
 	<div class="container">
-		<h4>Summary</h4>
+		<h4>Current Faults</h4>
 		<table class="table table-striped">
 			<thead>
 				<tr>
@@ -80,12 +80,12 @@
 				<tr>
 					<td>75635</td>
 					<td>BMS Offline</td>
-					<td>that has occured.</td>
+					<td>that has occurred.</td>
 				</tr>
 			</tbody>
 		</table>
 		
-		<p>All faults are recorded in a diagnostic log with the date and time at which they occured.</p>
+		<p>All faults are recorded in a diagnostic log with the date and time at which they occurred.</p>
 		
 		<div class="col-sm-offset-2 col-sm-10">
 			<button type="submit" class="btn btn-default">Download Diagnostic Log</button>

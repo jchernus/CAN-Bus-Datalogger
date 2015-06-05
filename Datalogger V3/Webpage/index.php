@@ -58,32 +58,47 @@
 	
 	<div class="container">
 		<h4>Marmot Overview</h4>
-		<table class="table table-striped" style="width:400px">
+		<table class="table table-striped" style="width:700px">
+			<thead>
+				<tr>
+					<td>Date</td>
+					<td>Time</td>
+					<td>SOC</td>
+					<td>Battery Current</td>
+					<td>Battery Voltage</td>
+					<td>Vehicle Speed</td>
+					<td>Motor RPM</td>
+				</tr>
+			</thead>
 			<tbody>
-				<tr>
-					<td>Odometer</td>
-					<td>1253 km</td>
-				</tr>
-				<tr>
-					<td>Energy Used</td>
-					<td>12,384 kWh</td>
-				</tr>
-				<tr>
-					<td>Energy Taken In</td>
-					<td>12,498 kWh</td>
-				</tr>
-				<tr>
-					<td>Total Hours Charging</td>
-					<td>234 hours</td>
-				</tr>
-				<tr>
-					<td>Total Hours Operating</td>
-					<td>189 hours</td>
-				</tr>
-				<tr>
-					<td>Total Hours Driving</td>
-					<td>134 hours</td>
-				</tr>
+				<?php
+					class MyDailyLogDB extends SQLite3
+					{
+						function __construct()
+						{
+							$this->open('/data/dailylogs/DailyLogs.db');
+						}
+					}
+					$db = new MyDailyLogDB();
+					if(!$db){
+						echo $db->lastErrorMsg();
+					}
+					
+					$sql = "SELECT * FROM log ORDER BY date DESC, time DESC LIMIT 1;";
+					$ret = $db->query($sql);
+					while($row = $ret->fetchArray(SQLITE3_ASSOC) ){
+						echo "<tr>";
+							echo "<td>" . $row['date'] . "</td>";
+							echo "<td>" . $row['time'] . "</td>";
+							echo "<td>" . $row['soc'] . "</td>";
+							echo "<td>" . $row['battery_current'] . "</td>";
+							echo "<td>" . $row['battery_voltage'] . "</td>";
+							echo "<td>" . $row['vehicle_speed'] . "</td>";
+							echo "<td>" . $row['motor_velocity'] . "</td>";
+						echo "</tr>";
+				   }
+				   $db->close();
+				?>
 			</tbody>
 		</table>
 		
