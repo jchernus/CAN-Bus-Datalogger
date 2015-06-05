@@ -1,5 +1,4 @@
-import subprocess, os, re
-from time import localtime, strftime
+import subprocess, os, re, sqlite3
 
 battery_current = battery_voltage = battery_power_operating = battery_power_charging = 0
 mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = motor_current = 0
@@ -14,8 +13,7 @@ previous_time = 0
 
 counter = 0
 
-temppath = "/var/tmp/logs/"
-permpath = "/data/dailylogs/"
+permpath = "/data/dailylogs/DailyLogs.db"
 
 def twos_comp(val, bits):
     #compute the 2's compliment of int value val
@@ -120,209 +118,111 @@ def parse_data(msg_id, data):
         else:
             isRunning = 0
 
-#Create the paths that are needed to store files
-if (not os.path.exists(temppath)):
-    os.mkdir(temppath)
+#Connect to database 
+conn=sqlite3.connect(path + dbname)
+curs=conn.cursor()
 
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
-    
-    #Check the date, set the filename
-    p = subprocess.Popen("date +\"%F\"", stdout=subprocess.PIPE, shell=True)
+            
+    #get x messages
+    p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
-    filename = output.strip() + ".csv"
-            
-    while(True): #Logging, a change of date or 300 seconds will break out of this loop
-        
-        #get x messages
-        p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
-        (output, err) = p.communicate()
-        lines = output.strip().split("\n")
-        
-        #parse messages
-        for line in lines:
-            try:
-                data = line.strip().split("  ")
-                parse_data(data[2], data[3][3:].strip()) #time stamp, message id, message
-            except:
-                print "Error parsing line: " + line
-                pass
-
-        #get date & time
-        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
-        (output, err) = p.communicate()
-        current_date = output
-
-        #if new date, break
-        if (previous_date != "" and current_date[:10] != previous_date[:10]):
-            break     #this will exit this while loop and return to the parent one, creating a new file (with the new date)
-        
-        #calculate time difference between current and previous time stamps
-        times = str(current_date[11:19]).split(":")
-        current_time = int(times[0]) * 3600 + int(times[1]) * 60 + int(times[2]) #convert to seconds
-        time_span = 1 #if there is no previous time stamp, assume 1s
-        if previous_time is not None:
-            time_span = (current_time - previous_time)
-            if time_span > 2: #if time between time stamps is too long, assume 1s
-                time_span = 1
-        previous_time = current_time
-        previous_date = current_date
-            
-        #if less than a second
-        if time_span >= 1:
-            
-            #write values to excel
-            excelFile = open(temppath + filename, 'a+')
-            
-            excelFile.write(str(current_date[11:19]) + ",")                     #Time Stamp
-               
-            excelFile.write(str(soc) + ",")                                     #State Of Charge
-            
-            excelFile.write(str(battery_current) + ",")                         #Battery Current
-            excelFile.write(str(battery_voltage) + ",")                         #Battery Voltage
-            excelFile.write(str(battery_power_operating) + ",")                 #Battery Power Operating
-            excelFile.write(str(battery_power_charging) + ",")                  #Battery Power Charging
-            
-            excelFile.write(str(motor_current) + ",")                           #Motor Current AC RMS
-            excelFile.write(str(motor_voltage) + ",")                           #Motor Voltage AC RMS
-            
-            #excelFile.write(str(mc_battery_current) + ",")                      #Motor Controller Battery Current
-            excelFile.write(str(mc_cap_voltage) + ",")                          #Motor Controller Capacitor Voltage
-
-            excelFile.write(str(vehicle_speed) + ",")                           #Vehicle Speed
-            excelFile.write(str(motor_velocity) + ",")                          #Motor Velocity
-
-            excelFile.write(str(current_fault) + ",")                           #Current Highest Priority Fault
-            excelFile.write(str(traction_state) + ",")                          #Traction State
-
-            excelFile.write(str(max_batt_discharge_current) + ",")              #Maximum Battery Discharge Current
-            excelFile.write(str(max_batt_charge_current) + ",")                 #Maximum Battery Charge Current
-
-            excelFile.write(str(motor_temp) + ",")                              #Motor Temperature        
-            excelFile.write(str(heatsink_temp) + ",")                           #Motor Controller Heatsink Temperature
-
-            excelFile.write(str(batt_high_temp) + ",")                          #Battery High Temp
-            excelFile.write(str(batt_high_temp_id) + ",")                       #Battery High Temp ID
-
-            excelFile.write(str(batt_low_temp) + ",")                           #Battery Low Temp     
-            excelFile.write(str(batt_low_temp_id) + ",")                        #Battery Low Temp ID
-            
-            excelFile.write(str(isCharging) + ",")                              #Time Charging
-            excelFile.write(str(isOperating) + ",")                             #Vehicle On Time
-            excelFile.write(str(isRunning) + ",")                               #Vehicle Run Hours
-                
-            excelFile.write("\n")
-
-            excelFile.close()
+    lines = output.strip().split("\n")
     
-            #integrate certain variables to gets sums
-            odometer += (vehicle_speed * time_span)/3600.0
-            hours_charging += (isCharging * time_span)/3600.0
-            hours_operating += (isOperating * time_span)/3600.0
-            hours_running += (isRunning  * time_span)/3600.0
-            battery_energy_operating += (battery_power_operating * time_span)/3600.0
-            battery_energy_charging += (battery_power_charging * time_span)/3600.0
-
-            #zero all data
-            battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
-            motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
-            max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
-            batt_low_temp = batt_low_temp_id = isCharging = isOperating = isRunning = 0
-
-            counter += 1
-
-            if counter == 300:
-                counter = 0
-                #time to move this data to a permanent location and start a new temporary file
-                break
-
-    #Must be done parsing either 5 minutes worth of data, or the end of the day's data,
-    #move data to permanent location:
-
-    #Does a permanent file for today's date already exist?
-    if os.path.exists(permpath + filename):
-        #File exists, we need to read in existing data
+    #parse messages
+    for line in lines:
         try:
-            with open(permpath + filename, 'r+') as parsedFile:
-                line = parsedFile.readline() #ignore the first line
-                line = parsedFile.readline() #we want this second line
-                sums = line.strip().split(",")
+            data = line.strip().split("  ")
+            parse_data(data[2], data[3][3:].strip()) #time stamp, message id, message
+        except:
+            print "Error parsing line: " + line
+            pass
 
-                odometer += float(sums[1])
-                battery_energy_operating += float(sums[2])
-                battery_energy_charging += float(sums[3])
-                hours_charging += float(sums[4])
-                hours_operating += float(sums[5])
-                hours_running += float(sums[6])
-                    
-        except (ValueError, IndexError): #variables garbled, can't convert into floats
-            try: 
-                os.rename(temppath + filename, temppath + filename[0:-4] + "_Error" + ".csv")
-            except: # may already exist, just delete the older one then
-                os.remove(temppath + filename[0:-4] + "_Error" + ".csv")
-                os.rename(temppath + filename, temppath + filename[0:-4] + "_Error" + ".csv")
+    #get date & time
+    p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
+    (output, err) = p.communicate()
+    current_date = output
+    
+    #calculate time difference between current and previous time stamps
+    times = str(current_date[11:19]).split(":")
+    current_time = int(times[0]) * 3600 + int(times[1]) * 60 + int(times[2]) #convert to seconds
+    time_span = 1 #if there is no previous time stamp, assume 1s
+    if previous_time is not None:
+        time_span = (current_time - previous_time)
+        if time_span > 2: #if time between time stamps is too long, assume 1s
+            time_span = 1
+    previous_time = current_time
+    previous_date = current_date
         
-    #Write summations to first and second lines in the .csv file.
-    excelFileTemp = open(permpath + filename, 'a+')
-    excelFileTemp.close()
-    excelFile = open(permpath + filename, 'r+')
-    excelFile.seek(0)
-    excelFile.write('Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging)[kWh], Hours Charging [h], Hours Operating [h], Hours Running [h]\n')
-    #Convert all of the variables to strings and ensure they are at least 16 characters long each, this will prevent them from writing over the old date and causing "10.07.07"
-    str_odometer = str(odometer)
-    if (len(str_odometer) > 16):
-        str_odometer = str_odometer[:16]
-    while (len(str_odometer) < 16):
-        str_odometer = '0' + str_odometer
+    #if less than a second
+    if time_span >= 1:
 
-    str_battery_energy_operating = str(battery_energy_operating)
-    if (len(str_battery_energy_operating) > 16):
-        str_battery_energy_operating = str_battery_energy_operating[:16]
-    while (len(str_battery_energy_operating) < 16):
-        if (battery_energy_operating < 0):
-            str_battery_energy_operating = str_battery_energy_operating[0:1] + '0' + str_battery_energy_operating[1:]
-        elif (battery_energy_operating >= 0):
-            str_battery_energy_operating = '0' + str_battery_energy_operating
+        
+        
+        #write values to excel
+        str = "INSERT INTO log values('"
+        for datum in data:
+                str += datum.strip() + "','"
+        str = str[:-2] #get rid of that last comma
+        str += ")"
+        curs.execute(str)
+        
+        excelFile.write(str(current_date[11:19]) + ",")                     #Time Stamp
+           
+        excelFile.write(str(soc) + ",")                                     #State Of Charge
+        
+        excelFile.write(str(battery_current) + ",")                         #Battery Current
+        excelFile.write(str(battery_voltage) + ",")                         #Battery Voltage
+        excelFile.write(str(battery_power_operating) + ",")                 #Battery Power Operating
+        excelFile.write(str(battery_power_charging) + ",")                  #Battery Power Charging
+        
+        excelFile.write(str(motor_current) + ",")                           #Motor Current AC RMS
+        excelFile.write(str(motor_voltage) + ",")                           #Motor Voltage AC RMS
+        
+        #excelFile.write(str(mc_battery_current) + ",")                      #Motor Controller Battery Current
+        excelFile.write(str(mc_cap_voltage) + ",")                          #Motor Controller Capacitor Voltage
 
-    str_battery_energy_charging = str(battery_energy_charging)
-    if (len(str_battery_energy_charging) > 16):
-        str_battery_energy_charging = str_battery_energy_charging[:16]
-    while (len(str_battery_energy_charging) < 16):
-        if (battery_energy_charging < 0):
-            str_battery_energy_charging = str_battery_energy_charging[0:1] + '0' + str_battery_energy_charging[1:]
-        elif (battery_energy_charging >= 0):
-            str_battery_energy_charging = '0' + str_battery_energy_charging
+        excelFile.write(str(vehicle_speed) + ",")                           #Vehicle Speed
+        excelFile.write(str(motor_velocity) + ",")                          #Motor Velocity
 
-    str_hours_charging = str(hours_charging)
-    if (len(str_hours_charging) > 16):
-        str_hours_charging = str_hours_charging[:16]
-    while (len(str_hours_charging) < 16):
-        str_hours_charging = '0' + str_hours_charging
+        excelFile.write(str(current_fault) + ",")                           #Current Highest Priority Fault
+        excelFile.write(str(traction_state) + ",")                          #Traction State
 
-    str_hours_operating = str(hours_operating)
-    if (len(str_hours_operating) > 16):
-        str_hours_operating = str_hours_operating[:16]
-    while (len(str_hours_operating) < 16):
-        str_hours_operating = '0' + str_hours_operating
+        excelFile.write(str(max_batt_discharge_current) + ",")              #Maximum Battery Discharge Current
+        excelFile.write(str(max_batt_charge_current) + ",")                 #Maximum Battery Charge Current
 
-    str_hours_running = str(hours_running)
-    if (len(str_hours_running) > 16):
-        str_hours_running = str_hours_running[:16]
-    while (len(str_hours_running) < 16):
-        str_hours_running = '0' + str_hours_running
-    
-    excelFile.write(str(current_date[:10]) +  ',' + str_odometer +  ',' + str_battery_energy_operating +  ',' + str_battery_energy_charging +  ',' + str_hours_charging +  ',' + str_hours_operating +  ',' + str_hours_running)
-    excelFile.write('\n\nTime Stamp, SOC [%], Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Motor Controller Capacitor Voltage [V], Vehicle Speed [km/h], Motor Velocity [RPM], Current Highest Priority Fault, Traction State, Maximum Battery Discharge Current [A], Maximum Battery Charge Current [A], Motor Temperature [Celcius], Motor Controller Heatsink Temperature [Celcius], Battery Pack Highest Temperature [Celcius], Batt High Temp ID, Batter Pack Lowest Temperature [Celcius], Batt Low Temp ID, Charging, Operating, Running\n')
-    excelFile.close()
+        excelFile.write(str(motor_temp) + ",")                              #Motor Temperature        
+        excelFile.write(str(heatsink_temp) + ",")                           #Motor Controller Heatsink Temperature
 
-    #zero all sums
-    odometer = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
+        excelFile.write(str(batt_high_temp) + ",")                          #Battery High Temp
+        excelFile.write(str(batt_high_temp_id) + ",")                       #Battery High Temp ID
+
+        excelFile.write(str(batt_low_temp) + ",")                           #Battery Low Temp     
+        excelFile.write(str(batt_low_temp_id) + ",")                        #Battery Low Temp ID
+        
+        excelFile.write(str(isCharging) + ",")                              #Time Charging
+        excelFile.write(str(isOperating) + ",")                             #Vehicle On Time
+        excelFile.write(str(isRunning) + ",")                               #Vehicle Run Hours
             
-    #append the log data
-    with open(permpath + filename, 'a+') as outfile:
-        with open (temppath + filename) as infile:
-            for line in infile:
-                outfile.write(line)
+        conn.commit()
 
-    #delete the temporary file
-    os.remove(temppath + filename)
-    
+        #integrate certain variables to gets sums
+        odometer += (vehicle_speed * time_span)/3600.0
+        hours_charging += (isCharging * time_span)/3600.0
+        hours_operating += (isOperating * time_span)/3600.0
+        hours_running += (isRunning  * time_span)/3600.0
+        battery_energy_operating += (battery_power_operating * time_span)/3600.0
+        battery_energy_charging += (battery_power_charging * time_span)/3600.0
+
+        #zero all data
+        battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
+        motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
+        max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
+        batt_low_temp = batt_low_temp_id = isCharging = isOperating = isRunning = 0
+
+        counter += 1
+
+        if counter == 300:
+            counter = 0
+            #time to move this data to a permanent location and start a new temporary file
+            break
