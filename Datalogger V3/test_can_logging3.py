@@ -1,4 +1,6 @@
-import subprocess, os, re
+#!/usr/bin/env python
+
+import subprocess, os, re, sqlite3
 
 previous_date = ""
 previous_time = 0
@@ -6,7 +8,7 @@ previous_time = 0
 counter = 0
 
 temppath = "/var/tmp/logs/"
-permpath = "/data/dailylogs/"
+permpath = "/data/databases/"
 
 #Create the paths that are needed to store files
 if (not os.path.exists(temppath)):
@@ -16,16 +18,27 @@ if (not os.path.exists(permpath)):
     os.mkdir(permpath)
 
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
-    
-    #Check the date, set the filename
+
+    #check the date, set the filename
     p = subprocess.Popen("date +\"%F\"", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
-    filename = output.strip() + ".csv"
+    filename = output.strip() + ".db"
+
+    #remove file if already exists due to crashed code
+    if (os.path.exists(temppath + filename)):
+        os.remove(temppath + filename)
+
+    #create database 
+    conn=sqlite3.connect(temppath + filename)
+    curs=conn.cursor()
+    curs.execute("CREATE TABLE log (time TEXT)")
+    conn.commit()
+    conn.close()
             
-    while(True): #Logging, a change of date or 300 seconds will break out of this loop
+    while(True): #Logging, a change of date or 120 seconds will break out of this loop
         
         #get date & time
-        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
+	p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
         current_date = output
 
@@ -49,28 +62,48 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         if time_span >= 1:
             
             #write values to excel
-            excelFile = open(temppath + filename, 'a+')
-            
-            excelFile.write(str(current_date))                     #Time Stamp
-            excelFile.write("\n")
+            conn=sqlite3.connect(temppath + filename)
+	    curs=conn.cursor()
 
-            excelFile.close()
+            curs.execute("INSERT INTO log values('" + str(current_date) + "')")
+	    conn.commit()
+	    conn.close()
     
             counter += 1
 
-            if counter == 120:
+            if counter == 20:
                 counter = 0
                 #time to move this data to a permanent location and start a new temporary file
                 break
 
-    #Must be done parsing either 5 minutes worth of data, or the end of the day's data,
+    #Must be done parsing either 2 minutes worth of data, or the end of the day's data,
     #move data to permanent location:
+	
+    createPermDBFile = False
+    if (not os.path.exists(permpath + filename)):
+        createPermDBFile = True
     
     #append the log data
-    with open(permpath + filename, 'a+') as outfile:
-        with open (temppath + filename) as infile:
-            for line in infile:
-                outfile.write(line)
+    permConn=sqlite3.connect(permpath + filename)
+    permCurs=permConn.cursor()
+	
+    if (createPermDBFile):
+        permCurs.execute("CREATE TABLE log (time TEXT)")
+    
+    tempConn=sqlite3.connect(temppath + filename)
+    tempCurs=tempConn.cursor()
+            
+    for row in tempCurs.execute("SELECT * FROM log"):
+        line = "INSERT INTO log values('"
+        for item in row:
+            line += str(item).strip()
+        line += "')"
+        print line
+        permCurs.execute(line)
+    permConn.commit()
+    permConn.close()
+    
+    tempConn.close()
 
     #delete the temporary file
     os.remove(temppath + filename)

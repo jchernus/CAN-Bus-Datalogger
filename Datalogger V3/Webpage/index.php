@@ -76,7 +76,7 @@
 					{
 						function __construct()
 						{
-							$this->open('/data/dailylogs/DailyLogs.db');
+							$this->open('/data/databases/DailyLogs.db');
 						}
 					}
 					$db = new MyDailyLogDB();

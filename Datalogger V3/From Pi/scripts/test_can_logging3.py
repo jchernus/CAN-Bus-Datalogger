@@ -6,7 +6,7 @@ previous_time = 0
 counter = 0
 
 temppath = "/var/tmp/logs/"
-permpath = "/data/dailylogs/"
+permpath = "/data/databases/"
 
 #Create the paths that are needed to store files
 if (not os.path.exists(temppath)):

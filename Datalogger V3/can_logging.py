@@ -1,19 +1,20 @@
+#!/usr/bin/env python
+
 import subprocess, os, re, sqlite3
 
 battery_current = battery_voltage = battery_power_operating = battery_power_charging = 0
 mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = motor_current = 0
 motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = max_batt_discharge_current = max_batt_charge_current = 0
-soc = isCharging = isOperating = isRunning = 0
+soc = isPluggedIn = isCharging = isOperating = isRunning = 0
 batt_high_temp = batt_low_temp = batt_high_temp_id = batt_low_temp_id = 0
 
-odometer = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
+odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
 
 previous_date = ""
 previous_time = 0
 
-counter = 0
-
-permpath = "/data/dailylogs/DailyLogs.db"
+dailyLogsPath = "/data/databases/DailyLogs.db"
+summaryPath = "/data/databases/Summary.db"
 
 def twos_comp(val, bits):
     #compute the 2's compliment of int value val
@@ -25,9 +26,9 @@ def twos_comp(val, bits):
 def parse_data(msg_id, data):
     global battery_current, battery_voltage, battery_power_operating, battery_power_charging
     global mc_cap_voltage, heatsink_temp, current_fault, traction_state, motor_temp, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
-    global last_time_stamp, odometer, hours_charging, hours_operating, hours_running, battery_energy_operating, battery_energy_charging
+    global last_time_stamp, odometer, hours_plugged_in, hours_charging, hours_operating, hours_running, battery_energy_operating, battery_energy_charging
     global max_batt_discharge_current, max_batt_charge_current
-    global soc, isCharging, isOperating, isRunning
+    global soc, isPluggedIn, isCharging, isOperating, isRunning
     global batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id
     
     pattern = re.compile(r'\s+')
@@ -48,14 +49,15 @@ def parse_data(msg_id, data):
         data_6 = str(bin(int(data[12] + data[13], 16)))[2:]
         while (len(data_6) < 8):
             data_6 = '0' + data_6
-##        isCharging = int(data_6[3])
-##        isOperating = int(data_6[4])
         isOperating = 1  
 
     elif (msg_id == "478"):     # same as 477 but on charge
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
         battery_current = twos_comp(battery_current, 16)
         battery_current /= 10.0
+
+        if (battery_current) > 0.1:
+            isCharging = 1
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_charging = battery_current * battery_voltage / 1000.0
@@ -65,11 +67,9 @@ def parse_data(msg_id, data):
         data_6 = str(bin(int(data[12] + data[13], 16)))[2:]
         while (len(data_6) < 8):
             data_6 = '0' + data_6
-##        isCharging = int(data_6[4])
-##        isOperating = int(data_6[3])
-        isCharging = 1
+        isPluggedIn = 1
 
-    elif (msg_id == "479" or msg_id == "480"):     # the two transmit the same info
+    elif (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
         batt_high_temp = int(data[0] + data[1], 16)
         batt_low_temp = int(data[4] + data[5], 16)
         batt_high_temp_id = int(data[8] + data[9], 16)
@@ -81,11 +81,9 @@ def parse_data(msg_id, data):
         current_fault = int(data[8] + data[9] + data[6] + data[7], 16)
         traction_state = int(data[10] + data[11], 16)
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
-##        if (int(data[10] + data[11], 16) > 0):
-##            isRunning = 1
 
-    ##elif (msg_id == "270"):
-        ##motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16) * 0.0625
+    elif (msg_id == "270"):
+        motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16) * 0.0625
 
     elif (msg_id == "294"):
         max_batt_charge_current = int(data[6] + data[7] + data[4] + data[5], 16)
@@ -118,9 +116,12 @@ def parse_data(msg_id, data):
         else:
             isRunning = 0
 
-#Connect to database 
-conn=sqlite3.connect(path + dbname)
-curs=conn.cursor()
+#connect to databases
+dailyLogsDB=sqlite3.connect(dailyLogsPath)
+dailyLogsCurs=dailyLogsDB.cursor()
+
+dailyLogsDB=sqlite3.connect(summaryPath)
+dailyLogsCurs=summaryDB.cursor()
 
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
             
@@ -157,72 +158,96 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     #if less than a second
     if time_span >= 1:
 
-        
-        
-        #write values to excel
+        #write values to dailylogs database
         str = "INSERT INTO log values('"
-        for datum in data:
-                str += datum.strip() + "','"
-        str = str[:-2] #get rid of that last comma
-        str += ")"
-        curs.execute(str)
+
+        str += current_date[0:10] + "','"
+        str += current_date[11:19] + "','"
+        str += soc + "','"
+        str += battery_current + "','"
+        str += battery_voltage + "','"
         
-        excelFile.write(str(current_date[11:19]) + ",")                     #Time Stamp
+        str += battery_power_operating + "','"
+        str += battery_power_charging + "','"
+        
+        str += motor_current + "','"
+        str += motor_voltage + "','"
+        
+        str += mc_battery_current + "','"
+        str += mc_cap_voltage + "','"
+        
+        str += vehicle_speed + "','"
+        str += motor_velocity + "','"
+        
+        str += current_fault + "','"
+        str += traction_state + "','"
+        
+        str += max_batt_discharge_current + "','"
+        str += max_batt_charge_current + "','"
+        
+        str += motor_temp + "','"
+        str += heatsink_temp + "','"
+        
+        str += batt_high_temp + "','"
+        str += batt_high_temp_id + "','"
+        str += batt_low_temp + "','"
+        str += batt_low_temp_id + "','"
+        
+        str += isPluggedIn + "','"
+        str += isCharging + "','"
+        str += isOperating + "','"
+        str += isRunning
            
-        excelFile.write(str(soc) + ",")                                     #State Of Charge
+        str += "')"
+        dailyLogsCurs.execute(str)
         
-        excelFile.write(str(battery_current) + ",")                         #Battery Current
-        excelFile.write(str(battery_voltage) + ",")                         #Battery Voltage
-        excelFile.write(str(battery_power_operating) + ",")                 #Battery Power Operating
-        excelFile.write(str(battery_power_charging) + ",")                  #Battery Power Charging
+        dailyLogsDB.commit()
+
+        #integrate certain variables over time to gets sums
+        odometer = (vehicle_speed * time_span)/3600.0
+        hours_plugged_in = (isPluggedIn * time_span)/3600.0
+        hours_charging = (isCharging * time_span)/3600.0
+        hours_operating = (isOperating * time_span)/3600.0
+        hours_running = (isRunning  * time_span)/3600.0
+        battery_energy_operating = (battery_power_operating * time_span)/3600.0
+        battery_energy_charging = (battery_power_charging * time_span)/3600.0
+
+        #retrieve old summary data if it exists
+        summaryCurs.execute("SELECT * FROM log WHERE date='" + current_date[0:10] + "' LIMIT 1;")
+        oldSummaryData = summaryCurs.fetchall()
+
+        if len(oldSummaryData) > 0:
+            for datum in oldSummaryData:
+                odometer += float(oldSummaryData[1])
+                hours_plugged_in += float(oldSummaryData[2])
+                hours_charging += float(oldSummaryData[3])
+                hours_operating += float(oldSummaryData[4])
+                hours_running += float(oldSummaryData[5])
+                battery_energy_operating += float(oldSummaryData[6])
+                battery_energy_charging += float(oldSummaryData[7])
+
+        #save summary data into summary database
+        str = "INSERT INTO log values('"
+        str += odometer + "','"
+        str += hours_plugged_in + "','"
+        str += hours_charging + "','"
+        str += hours_operating + "','"
+        str += hours_running + "','"
+        str += battery_energy_operating + "','"
+        str += battery_energy_charging
+        str += "')"
         
-        excelFile.write(str(motor_current) + ",")                           #Motor Current AC RMS
-        excelFile.write(str(motor_voltage) + ",")                           #Motor Voltage AC RMS
-        
-        #excelFile.write(str(mc_battery_current) + ",")                      #Motor Controller Battery Current
-        excelFile.write(str(mc_cap_voltage) + ",")                          #Motor Controller Capacitor Voltage
-
-        excelFile.write(str(vehicle_speed) + ",")                           #Vehicle Speed
-        excelFile.write(str(motor_velocity) + ",")                          #Motor Velocity
-
-        excelFile.write(str(current_fault) + ",")                           #Current Highest Priority Fault
-        excelFile.write(str(traction_state) + ",")                          #Traction State
-
-        excelFile.write(str(max_batt_discharge_current) + ",")              #Maximum Battery Discharge Current
-        excelFile.write(str(max_batt_charge_current) + ",")                 #Maximum Battery Charge Current
-
-        excelFile.write(str(motor_temp) + ",")                              #Motor Temperature        
-        excelFile.write(str(heatsink_temp) + ",")                           #Motor Controller Heatsink Temperature
-
-        excelFile.write(str(batt_high_temp) + ",")                          #Battery High Temp
-        excelFile.write(str(batt_high_temp_id) + ",")                       #Battery High Temp ID
-
-        excelFile.write(str(batt_low_temp) + ",")                           #Battery Low Temp     
-        excelFile.write(str(batt_low_temp_id) + ",")                        #Battery Low Temp ID
-        
-        excelFile.write(str(isCharging) + ",")                              #Time Charging
-        excelFile.write(str(isOperating) + ",")                             #Vehicle On Time
-        excelFile.write(str(isRunning) + ",")                               #Vehicle Run Hours
-            
-        conn.commit()
-
-        #integrate certain variables to gets sums
-        odometer += (vehicle_speed * time_span)/3600.0
-        hours_charging += (isCharging * time_span)/3600.0
-        hours_operating += (isOperating * time_span)/3600.0
-        hours_running += (isRunning  * time_span)/3600.0
-        battery_energy_operating += (battery_power_operating * time_span)/3600.0
-        battery_energy_charging += (battery_power_charging * time_span)/3600.0
+        summaryCurs.execute(str)
+        summaryDB.commit()
 
         #zero all data
         battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
         motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
         max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
-        batt_low_temp = batt_low_temp_id = isCharging = isOperating = isRunning = 0
+        batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
+        odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = 0
+        
 
-        counter += 1
-
-        if counter == 300:
-            counter = 0
-            #time to move this data to a permanent location and start a new temporary file
-            break
+#close databases
+dailyLogsDB.close()
+summaryDB.close()

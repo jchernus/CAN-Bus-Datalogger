@@ -4,7 +4,7 @@ import sqlite3, os, sys, subprocess
 
 dates = sys.argv[1:] # Retrieve the requested dates
 
-db_path = "/data/dailylogs/DailyLogs.db"
+db_path = "/data/databases/DailyLogs.db"
 csv_path = "/var/tmp/logs/"
 
 #check the date, set the filename

@@ -2,7 +2,7 @@
 
 import sqlite3, os
 
-db_path = "/data/summary/Summary.db"
+db_path = "/data/databases/Summary.db"
 csv_path = "/var/tmp/summary/Summary.csv"
 
 if (os.path.exists(db_path)):
