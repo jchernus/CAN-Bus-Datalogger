@@ -1,0 +1,4 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+find /var/tmp/logs/ -type f -name "20*.zip" -mmin +5 -exec rm -f -- {} \;
