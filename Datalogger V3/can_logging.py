@@ -126,7 +126,7 @@ dailyLogsCurs=summaryDB.cursor()
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
             
     #get x messages
-    p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,479:7ff,480:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     lines = output.strip().split("\n")
     
