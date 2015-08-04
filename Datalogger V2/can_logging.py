@@ -134,7 +134,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     while(True): #Logging, a change of date or 300 seconds will break out of this loop
         
         #get x messages
-        p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,475:7ff,270:7ff,294:7ff,306:7ff,479:7ff,480:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+        p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,479:7ff,480:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
         lines = output.strip().split("\n")
         
@@ -173,7 +173,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
             #write values to excel
             excelFile = open(temppath + filename, 'a+')
             
-            excelFile.write(str(current_date[11:19]) + ",")                           #Time Stamp
+            excelFile.write(str(current_date[11:19]) + ",")                     #Time Stamp
                
             excelFile.write(str(soc) + ",")                                     #State Of Charge
             
@@ -310,7 +310,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     while (len(str_hours_running) < 16):
         str_hours_running = '0' + str_hours_running
     
-    excelFile.write(str(filename[:-4]) +  ',' + str_odometer +  ',' + str_battery_energy_operating +  ',' + str_battery_energy_charging +  ',' + str_hours_charging +  ',' + str_hours_operating +  ',' + str_hours_running)
+    excelFile.write(str(current_date[:10]) +  ',' + str_odometer +  ',' + str_battery_energy_operating +  ',' + str_battery_energy_charging +  ',' + str_hours_charging +  ',' + str_hours_operating +  ',' + str_hours_running)
     excelFile.write('\n\nTime Stamp, SOC [%], Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Motor Controller Capacitor Voltage [V], Vehicle Speed [km/h], Motor Velocity [RPM], Current Highest Priority Fault, Traction State, Maximum Battery Discharge Current [A], Maximum Battery Charge Current [A], Motor Temperature [Celcius], Motor Controller Heatsink Temperature [Celcius], Battery Pack Highest Temperature [Celcius], Batt High Temp ID, Batter Pack Lowest Temperature [Celcius], Batt Low Temp ID, Charging, Operating, Running\n')
     excelFile.close()
 

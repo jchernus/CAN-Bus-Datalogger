@@ -13,8 +13,7 @@ odometer = hours_plugged_in = hours_charging = hours_operating = hours_running =
 previous_date = ""
 previous_time = 0
 
-dailyLogsPath = "/data/databases/DailyLogs.db"
-summaryPath = "/data/databases/Summary.db"
+logsPath = "/data/databases/Logs.db"
 
 def twos_comp(val, bits):
     #compute the 2's compliment of int value val
@@ -78,7 +77,13 @@ def parse_data(msg_id, data):
     elif (msg_id == "475"):
         mc_cap_voltage = int(data[2] + data[3] + data[0] + data[1], 16)/16.0
         heatsink_temp = int(data[4] + data[5], 16)
-        current_fault = int(data[8] + data[9] + data[6] + data[7], 16)
+
+        fault = str(int(data[8] + data[9] + data[6] + data[7], 16))
+        if fault not in current_fault:
+            if current_fault not == 0:
+                current_fault += ", "
+            current_fault += fault
+        
         traction_state = int(data[10] + data[11], 16)
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
 
@@ -117,11 +122,8 @@ def parse_data(msg_id, data):
             isRunning = 0
 
 #connect to databases
-dailyLogsDB=sqlite3.connect(dailyLogsPath)
-dailyLogsCurs=dailyLogsDB.cursor()
-
-dailyLogsDB=sqlite3.connect(summaryPath)
-dailyLogsCurs=summaryDB.cursor()
+logsDB=sqlite3.connect(logsPath)
+logsCurs=logsDB.cursor()
 
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
             
@@ -159,7 +161,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     if time_span >= 1:
 
         #write values to dailylogs database
-        str = "INSERT INTO log values('"
+        str = "INSERT INTO dailyLogs values('"
 
         str += current_date[0:10] + "','"
         str += current_date[11:19] + "','"
@@ -197,11 +199,11 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         str += isCharging + "','"
         str += isOperating + "','"
         str += isRunning
-           
-        str += "')"
-        dailyLogsCurs.execute(str)
+    
+        str += "');"
         
-        dailyLogsDB.commit()
+        logsCurs.execute(str)
+        logsDB.commit()
 
         #integrate certain variables over time to gets sums
         odometer = (vehicle_speed * time_span)/3600.0
@@ -213,8 +215,8 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         battery_energy_charging = (battery_power_charging * time_span)/3600.0
 
         #retrieve old summary data if it exists
-        summaryCurs.execute("SELECT * FROM log WHERE date='" + current_date[0:10] + "' LIMIT 1;")
-        oldSummaryData = summaryCurs.fetchall()
+        logsCurs.execute("SELECT * FROM summary WHERE date='" + current_date[0:10] + "' LIMIT 1;")
+        oldSummaryData = logsCurs.fetchall()
 
         if len(oldSummaryData) > 0:
             for datum in oldSummaryData:
@@ -226,19 +228,32 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
                 battery_energy_operating += float(oldSummaryData[6])
                 battery_energy_charging += float(oldSummaryData[7])
 
-        #save summary data into summary database
-        str = "INSERT INTO log values('"
-        str += odometer + "','"
-        str += hours_plugged_in + "','"
-        str += hours_charging + "','"
-        str += hours_operating + "','"
-        str += hours_running + "','"
-        str += battery_energy_operating + "','"
-        str += battery_energy_charging
-        str += "')"
+            #update summary data in database
+            str = "UPDATE summary SET odometer="
+            str += odometer + ",hours_plugged_in="
+            str += hours_plugged_in + ",hours_charging="
+            str += hours_charging + ",hours_operating="
+            str += hours_operating + ",hours_running="
+            str += hours_running + ",battery_energy_operating="
+            str += battery_energy_operating + ",battery_energy_charging="
+            str += battery_energy_charging
+            str += " WHERE date='" + current_date[0:10] + ";" 
+            
+        else:
+            #insert summary data into database
+            str = "INSERT INTO summary VALUES('"
+            str += current_date[0:10] + "','"
+            str += odometer + "','"
+            str += hours_plugged_in + "','"
+            str += hours_charging + "','"
+            str += hours_operating + "','"
+            str += hours_running + "','"
+            str += battery_energy_operating + "','"
+            str += battery_energy_charging
+            str += "');"
         
-        summaryCurs.execute(str)
-        summaryDB.commit()
+        logsCurs.execute(str)
+        logsDB.commit()
 
         #zero all data
         battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
@@ -247,7 +262,5 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
         odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = 0
         
-
 #close databases
-dailyLogsDB.close()
-summaryDB.close()
+logsDB.close()
