@@ -19,9 +19,9 @@ if (os.path.exists(db_path)):
                 logsCurs.execute("DELETE FROM dailyLogs WHERE date = '%s';" % date)
 
                 #Clean out fault logs
-                logsCurs.execute("SELECT date FROM faults ORDER BY date LIMIT 1;") #get oldest date
+                logsCurs.execute("SELECT date FROM faultLogs ORDER BY date LIMIT 1;") #get oldest date
                 date = logsCurs.fetchone()[0]
-                logsCurs.execute("DELETE FROM faults WHERE date = '%s';" % date)
+                logsCurs.execute("DELETE FROM faultLogs WHERE date = '%s';" % date)
                 
                 logsDB.commit()
 

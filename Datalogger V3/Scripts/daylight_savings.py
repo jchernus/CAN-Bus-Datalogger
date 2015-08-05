@@ -19,10 +19,10 @@ for date in dates:
     if today == date:
         if date[5:7] == "11":
             #set time back an hour
-            command = ""
+            command = "sudo date -s \"-1 hour\""
         elif date[5:7] == "03":
             #set time forward an hour
-            command = ""
+            command = "sudo date -s \"+1 hour\""
             
         p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
