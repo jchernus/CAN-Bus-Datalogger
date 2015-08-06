@@ -79,7 +79,7 @@ def parse_data(msg_id, data):
         heatsink_temp = int(data[4] + data[5], 16)
 
         fault = str(int(data[8] + data[9] + data[6] + data[7], 16))
-        if fault not in current_fault:
+        if fault not in str(current_fault):
             if current_fault != 0:
                 current_fault += ", "
             current_fault += fault
@@ -134,12 +134,12 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     
     #parse messages
     for line in lines:
-        try:
-            data = line.strip().split("  ")
-            parse_data(data[2], data[3][3:].strip()) #time stamp, message id, message
-        except:
-            print "Error parsing line: " + line
-            pass
+##        try:
+        data = line.strip().split("  ")
+        parse_data(data[2], data[3][3:].strip()) #message id, message
+##        except:
+##            print "Error parsing line: " + line
+##            pass
 
     #get date & time
     p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
@@ -147,7 +147,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     current_date = output
     
     #calculate time difference between current and previous time stamps
-    times = str(current_date[11:19]).split(":")
+    times = current_date[11:19].split(":")
     current_time = int(times[0]) * 3600 + int(times[1]) * 60 + int(times[2]) #convert to seconds
     time_span = 1 #if there is no previous time stamp, assume 1s
     if previous_time is not None:
@@ -161,48 +161,48 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     if time_span >= 1:
 
         #write values to dailylogs database
-        str = "INSERT INTO dailyLogs values('"
+        command = "INSERT INTO dailyLogs values('"
 
-        str += current_date[0:10] + "','"
-        str += current_date[11:19] + "','"
-        str += `soc` + "','"
-        str += `battery_current` + "','"
-        str += `battery_voltage` + "','"
+        command += current_date[0:10] + "','"
+        command += current_date[11:19] + "','"
+        command += `soc` + "','"
+        command += `battery_current` + "','"
+        command += `battery_voltage` + "','"
         
-        str += `battery_power_operating` + "','"
-        str += `battery_power_charging` + "','"
+        command += `battery_power_operating` + "','"
+        command += `battery_power_charging` + "','"
         
-        str += `motor_current` + "','"
-        str += `motor_voltage` + "','"
+        command += `motor_current` + "','"
+        command += `motor_voltage` + "','"
         
-        str += `mc_battery_current` + "','"
-        str += `mc_cap_voltage` + "','"
+        command += `mc_battery_current` + "','"
+        command += `mc_cap_voltage` + "','"
         
-        str += `vehicle_speed` + "','"
-        str += `motor_velocity` + "','"
+        command += `vehicle_speed` + "','"
+        command += `motor_velocity` + "','"
         
-        str += `current_fault` + "','"
-        str += `traction_state` + "','"
+        command += `current_fault` + "','"
+        command += `traction_state` + "','"
         
-        str += `max_batt_discharge_current` + "','"
-        str += `max_batt_charge_current` + "','"
+        command += `max_batt_discharge_current` + "','"
+        command += `max_batt_charge_current` + "','"
         
-        str += `motor_temp` + "','"
-        str += `heatsink_temp` + "','"
+        command += `motor_temp` + "','"
+        command += `heatsink_temp` + "','"
         
-        str += `batt_high_temp` + "','"
-        str += `batt_high_temp_id` + "','"
-        str += `batt_low_temp` + "','"
-        str += `batt_low_temp_id` + "','"
+        command += `batt_high_temp` + "','"
+        command += `batt_high_temp_id` + "','"
+        command += `batt_low_temp` + "','"
+        command += `batt_low_temp_id` + "','"
         
-        str += `isPluggedIn` + "','"
-        str += `isCharging` + "','"
-        str += `isOperating` + "','"
-        str += `isRunning`
+        command += `isPluggedIn` + "','"
+        command += `isCharging` + "','"
+        command += `isOperating` + "','"
+        command += `isRunning`
     
-        str += "');"
+        command += "');"
         
-        logsCurs.execute(str)
+        logsCurs.execute(command)
         logsDB.commit()
 
         #integrate certain variables over time to gets sums
@@ -216,7 +216,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
         #retrieve old summary data if it exists
         logsCurs.execute("SELECT * FROM summary WHERE date='" + current_date[0:10] + "' LIMIT 1;")
-        oldSummaryData = logsCurs.fetchall()
+        oldSummaryData = logsCurs.fetchall()[0]
 
         if len(oldSummaryData) > 0:
             for datum in oldSummaryData:
@@ -229,30 +229,30 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
                 battery_energy_charging += float(oldSummaryData[7])
 
             #update summary data in database
-            str = "UPDATE summary SET odometer="
-            str += odometer + ",hours_plugged_in="
-            str += hours_plugged_in + ",hours_charging="
-            str += hours_charging + ",hours_operating="
-            str += hours_operating + ",hours_running="
-            str += hours_running + ",battery_energy_operating="
-            str += battery_energy_operating + ",battery_energy_charging="
-            str += battery_energy_charging
-            str += " WHERE date='" + current_date[0:10] + ";" 
+            command = "UPDATE summary SET odometer="
+            command += `odometer` + ",hours_plugged_in="
+            command += `hours_plugged_in` + ",hours_charging="
+            command += `hours_charging` + ",hours_operating="
+            command += `hours_operating` + ",hours_running="
+            command += `hours_running` + ",energy_out="
+            command += `battery_energy_operating` + ",energy_in="
+            command += `battery_energy_charging`
+            command += " WHERE date='" + current_date[0:10] + "';" 
             
         else:
             #insert summary data into database
-            str = "INSERT INTO summary VALUES('"
-            str += current_date[0:10] + "','"
-            str += `odometer` + "','"
-            str += `hours_plugged_in` + "','"
-            str += `hours_charging` + "','"
-            str += `hours_operating` + "','"
-            str += `hours_running` + "','"
-            str += `battery_energy_operating` + "','"
-            str += `battery_energy_charging`
-            str += "');"
-        
-        logsCurs.execute(str)
+            command = "INSERT INTO summary VALUES('"
+            command += current_date[0:10] + "','"
+            command += `odometer` + "','"
+            command += `hours_plugged_in` + "','"
+            command += `hours_charging` + "','"
+            command += `hours_operating` + "','"
+            command += `hours_running` + "','"
+            command += `battery_energy_operating` + "','"
+            command += `battery_energy_charging`
+            command += "');"
+
+        logsCurs.execute(command)
         logsDB.commit()
 
         #zero all data

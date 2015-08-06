@@ -19,6 +19,10 @@ if (os.path.exists(db_path)):
 	conn = sqlite3.connect(db_path)
 	curs = conn.cursor()
 
+        #Create needed folder structure
+	if not (os.path.exists(csv_path)):
+                os.makedirs(csv_path)
+
 	#Create each day's CSV file
 	for date in dates:
 			if not os.path.exists(csv_path + str(date) + ".csv"): #Path does not exist, or date is today's so lets remake it anyway.
