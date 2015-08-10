@@ -82,7 +82,7 @@ def parse_data(msg_id, data):
         if fault not in str(current_fault):
             if current_fault != 0:
                 current_fault += ", "
-            current_fault += fault
+            current_fault = str(current_fault) + fault
         
         traction_state = int(data[10] + data[11], 16)
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
@@ -201,7 +201,8 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += `isRunning`
     
         command += "');"
-        
+
+        #print command
         logsCurs.execute(command)
         logsDB.commit()
 
@@ -216,17 +217,17 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
         #retrieve old summary data if it exists
         logsCurs.execute("SELECT * FROM summary WHERE date='" + current_date[0:10] + "' LIMIT 1;")
-        oldSummaryData = logsCurs.fetchall()[0]
+        oldSummaryData = logsCurs.fetchall()
 
         if len(oldSummaryData) > 0:
             for datum in oldSummaryData:
-                odometer += float(oldSummaryData[1])
-                hours_plugged_in += float(oldSummaryData[2])
-                hours_charging += float(oldSummaryData[3])
-                hours_operating += float(oldSummaryData[4])
-                hours_running += float(oldSummaryData[5])
-                battery_energy_operating += float(oldSummaryData[6])
-                battery_energy_charging += float(oldSummaryData[7])
+                odometer += float(oldSummaryData[0][1])
+                hours_plugged_in += float(oldSummaryData[0][2])
+                hours_charging += float(oldSummaryData[0][3])
+                hours_operating += float(oldSummaryData[0][4])
+                hours_running += float(oldSummaryData[0][5])
+                battery_energy_operating += float(oldSummaryData[0][6])
+                battery_energy_charging += float(oldSummaryData[0][7])
 
             #update summary data in database
             command = "UPDATE summary SET odometer="
