@@ -2,17 +2,16 @@
 
 import subprocess, os, re, sqlite3
 
-battery_current = battery_voltage = battery_power_operating = battery_power_charging = 0
-mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = motor_current = 0
-motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = max_batt_discharge_current = max_batt_charge_current = 0
-soc = isPluggedIn = isCharging = isOperating = isRunning = 0
-torque = status_word = 0
+battery_current = battery_voltage = [0,0,0]
+mc_cap_voltage = heatsink_temp = motor_temp = motor_current = [0,0,0]
+motor_voltage = mc_battery_current = motor_velocity = [0,0,0]
+torque = status_word = [0,0,0]
 connected = False
 
 previous_date = ""
 previous_time = 0
 
-logsPath = "/data/databases/GroundHogLogs.db"
+logsPath = "/data/databases/GroundHogLogs.csv"
 
 def twos_comp(val, bits):
     #compute the 2's compliment of int value val
@@ -24,55 +23,43 @@ def twos_comp(val, bits):
 def parse_data(msg_id, data):
     global battery_current, battery_voltage, torque, status_word, mc_cap_voltage, heatsink_temp, motor_temp, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
     global last_time_stamp
-    global isPluggedIn, isCharging, isOperating, isRunning
     
     pattern = re.compile(r'\s+')
     data = re.sub(pattern, '', data)
     
     if (msg_id == "201" or msg_id == "202" or msg_id == "203"):
-        status_word = data[2] + data[3] + data[0] + data[1]
+        i = int(msg_id[2])-1
+        status_word[i] = data[2] + data[3] + data[0] + data[1]
 
-        mc_cap_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/16.0
+        mc_cap_voltage[i] = int(data[6] + data[7] + data[4] + data[5], 16)/16.0
 
-        battery_voltage = int(data[10] + data[11] + data[8] + data[9], 16)/16.0
+        battery_voltage[i] = int(data[10] + data[11] + data[8] + data[9], 16)/16.0
 
-        print msg_id +  ": " + status_word + ", " + `mc_cap_voltage` + ", " + `battery_voltage`
+        print msg_id +  ": " + status_word[i] + ", " + `mc_cap_voltage[i]` + ", " + `battery_voltage[i]`
 
     if (msg_id == "301" or msg_id == "302" or msg_id == "303"):
-        motor_velocity = int(data[6] + data[7] + data[4] + data[5] + data[2] + data[3] + data[0] + data[1], 16) #Something special needs to be done with this
-        motor_velocity = twos_comp(motor_velocity, 32)
+        i = int(msg_id[2])-1
+        motor_velocity[i] = int(data[6] + data[7] + data[4] + data[5] + data[2] + data[3] + data[0] + data[1], 16) #Something special needs to be done with this
+        motor_velocity[i] = twos_comp(motor_velocity[i], 32)
 
-        if (motor_velocity > 0.125 or motor_velocity < 0.125):
-            isRunning = 1
+        motor_temp[i] = int(data[10] + data[11] + data[8] + data[9], 16)
 
-        motor_temp = int(data[10] + data[11] + data[8] + data[9], 16)
-
-        print msg_id + ": " + `motor_velocity` + ", " + `motor_temp`
+        print msg_id + ": " + `motor_velocity[i]` + ", " + `motor_temp[i]`
 	
     if (msg_id == "401" or msg_id == "402" or msg_id == "403"):
-
-        isOperating = 1
+        i = int(msg_id[2])-1
         
-        battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
-        battery_current = twos_comp(battery_current, 16)
-        battery_current /= 10.0
-
-        if (battery_current) > 0.1:
-            isCharging = 1
+        battery_current[i] = int(data[2] + data[3] + data[0] + data[1], 16)
+        battery_current[i] = twos_comp(battery_current[i], 16)
+        battery_current[i] /= 10.0
         
-        motor_current = int(data[6] + data[7] + data[4] + data[5], 16)
+        motor_current[i] = int(data[6] + data[7] + data[4] + data[5], 16)
 
-        torque = int(data[10] + data[11] + data[8] + data[9], 16)
+        torque[i] = int(data[10] + data[11] + data[8] + data[9], 16)
 
-        heatsink_temp = int(data[12] + data[13], 16)
+        heatsink_temp[i] = int(data[12] + data[13], 16)
 
-        print msg_id +  ": " + `battery_current` + ", " + `motor_current` + ", " + `torque` + ", " + `heatsink_temp`
-
-#connect to databases
-if (not connected):
-    logsDB=sqlite3.connect(logsPath)
-    logsCurs=logsDB.cursor()
-    connected = True
+        print msg_id +  ": " + `battery_current[i]` + ", " + `motor_current[i]` + ", " + `torque[i]` + ", " + `heatsink_temp[i]`
 
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
             
@@ -98,38 +85,34 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     #calculate time difference between current and previous time stamps
     times = current_date[11:24].split(":")
 
-    #write values to dailylogs database
-    command = "INSERT INTO logs values('"
+    #write values to excel
+    excelFile = open(logsPath, 'a+')
 
-    command += current_date[0:10] + "','"
-    command += current_date[11:24] + "','"
-    
-    command += status_word + "','"
-    command += `mc_cap_voltage` + "','"        
-    command += `battery_voltage` + "','"
+    excelFile.write(current_date[0:10] + ",") 
+    excelFile.write(current_date[11:24] + ",")
 
-    command += `motor_velocity` + "','"
-    command += `motor_temp` + "','"
+    for i in range(0,3):
+        excelFile.write(status_word[i] + ",")
+        excelFile.write(`mc_cap_voltage[i]` + ",")        
+        excelFile.write(`battery_voltage[i]` + ",")
 
-    command += `battery_current` + "','"
-    command += `motor_current` + "','"
-    command += `torque` + "','"
-    command += `heatsink_temp` + "','0','0','0');"
+        excelFile.write(`motor_velocity[i]` + ",")
+        excelFile.write(`motor_temp[i]` + ",")
+
+        excelFile.write(`battery_current[i]` + ",")
+        excelFile.write(`motor_current[i]` + ",")
+        excelFile.write(`torque[i]` + ",")
+        excelFile.write(`heatsink_temp[i]` + ",")
+
+    excelFile.write("\n")
+    excelFile.close()
 
     print current_date[0:10] + "  " + current_date[11:24] + "\n"
-##    print "20X: " + `status_word` + ", " + `mc_cap_voltage` + ", " + `battery_voltage`
-##    print "30X: " + `motor_velocity` + ", " + `motor_temp`
-##    print "40X: " + `battery_current` + ", " + `motor_current` + ", " + `torque` + ", " + `heatsink_temp`
-##    print ""
-
-    logsCurs.execute(command)
-    logsDB.commit()
-
+    
     #zero all data
-    battery_current = battery_voltage = motor_current = 0
-    motor_voltage = mc_cap_voltage = motor_velocity = 0
-    motor_temp = heatsink_temp = status_word = torque = 0
-    #isOperating = isCharging = isRunning =  0
+    battery_current = battery_voltage = motor_current = [0,0,0]
+    motor_voltage = mc_cap_voltage = motor_velocity = [0,0,0]
+    motor_temp = heatsink_temp = status_word = torque = [0,0,0]
         
 ###close databases
 ##logsDB.close()
