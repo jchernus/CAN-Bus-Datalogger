@@ -7,6 +7,7 @@ mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = m
 motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = max_batt_discharge_current = max_batt_charge_current = 0
 soc = isPluggedIn = isCharging = isOperating = isRunning = 0
 torque = status_word = 0
+connected = False
 
 previous_date = ""
 previous_time = 0
@@ -29,11 +30,13 @@ def parse_data(msg_id, data):
     data = re.sub(pattern, '', data)
     
     if (msg_id == "201" or msg_id == "202" or msg_id == "203"):
-        status_word = int(data[2] + data[3] + data[0] + data[1], 16)
+        status_word = data[2] + data[3] + data[0] + data[1]
 
         mc_cap_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/16.0
 
-        battery_voltage = int(data[10] + data[11] + data[8] + data[9], 16)/100.0
+        battery_voltage = int(data[10] + data[11] + data[8] + data[9], 16)/16.0
+
+        print msg_id +  ": " + status_word + ", " + `mc_cap_voltage` + ", " + `battery_voltage`
 
     if (msg_id == "301" or msg_id == "302" or msg_id == "303"):
         motor_velocity = int(data[6] + data[7] + data[4] + data[5] + data[2] + data[3] + data[0] + data[1], 16) #Something special needs to be done with this
@@ -44,6 +47,8 @@ def parse_data(msg_id, data):
 
         motor_temp = int(data[10] + data[11] + data[8] + data[9], 16)
 
+        print msg_id + ": " + `motor_velocity` + ", " + `motor_temp`
+	
     if (msg_id == "401" or msg_id == "402" or msg_id == "403"):
 
         isOperating = 1
@@ -57,18 +62,22 @@ def parse_data(msg_id, data):
         
         motor_current = int(data[6] + data[7] + data[4] + data[5], 16)
 
-        toque = int(data[10] + data[11] + data[8] + data[9], 16)
+        torque = int(data[10] + data[11] + data[8] + data[9], 16)
 
-        heatsink_temp = int(data[13] + data[12], 16)
+        heatsink_temp = int(data[12] + data[13], 16)
+
+        print msg_id +  ": " + `battery_current` + ", " + `motor_current` + ", " + `torque` + ", " + `heatsink_temp`
 
 #connect to databases
-logsDB=sqlite3.connect(logsPath)
-logsCurs=logsDB.cursor()
+if (not connected):
+    logsDB=sqlite3.connect(logsPath)
+    logsCurs=logsDB.cursor()
+    connected = True
 
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
             
     #get x messages
-    p = subprocess.Popen("./candump -t A -n 10 can0,201:7ff,202:7ff,203:7ff,301:7ff,302:7ff,303:7ff,401:7ff,402:7ff,403:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen("./candump -t A -n 9 can0,201:7ff,202:7ff,203:7ff,301:7ff,302:7ff,303:7ff,401:7ff,402:7ff,403:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     lines = output.strip().split("\n")
     
@@ -77,62 +86,50 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 ##        try:
         data = line.strip().split("  ")
         parse_data(data[2], data[3][3:].strip()) #message id, message
-        except:
+##        except:
 ##            print "Error parsing line: " + line
 ##            pass
 
     #get date & time
-    p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S:%N\"", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     current_date = output
     
     #calculate time difference between current and previous time stamps
-    times = current_date[11:19].split(":")
-    current_time = int(times[0]) * 3600 + int(times[1]) * 60 + int(times[2]) #convert to seconds
-    time_span = 1 #if there is no previous time stamp, assume 1s
-    if previous_time is not None:
-        time_span = (current_time - previous_time)
-        if time_span > 2: #if time between time stamps is too long, assume 1s
-            time_span = 1
-    previous_time = current_time
-    previous_date = current_date
-        
-    #if less than a second
-    if time_span >= 1:
+    times = current_date[11:24].split(":")
 
-        #write values to dailylogs database
-        command = "INSERT INTO logs values('"
+    #write values to dailylogs database
+    command = "INSERT INTO logs values('"
 
-        command += current_date[0:10] + "','"
-        command += current_date[11:19] + "','"
-        
-        command += `status_word` + "','"
-        command += `mc_cap_voltage` + "','"        
-        command += `battery_voltage` + "','"
-
-        command += `motor_velocity` + "','"
-        command += `motor_temp` + "','"
-
-        command += `battery_current` + "','"
-        command += `motor_current` + "','"
-        command += `torque` + "','"
-        command += `heatsink_temp` + "','"
-        
-        command += `isCharging` + "','"
-        command += `isOperating` + "','"
-        command += `isRunning`
+    command += current_date[0:10] + "','"
+    command += current_date[11:24] + "','"
     
-        command += "');"
+    command += status_word + "','"
+    command += `mc_cap_voltage` + "','"        
+    command += `battery_voltage` + "','"
 
-        #print command
-        logsCurs.execute(command)
-        logsDB.commit()
+    command += `motor_velocity` + "','"
+    command += `motor_temp` + "','"
 
-        #zero all data
-        battery_current = battery_voltage = motor_current = 0
-        motor_voltage = mc_cap_voltage = motor_velocity = 0
-        motor_temp = heatsink_temp = status_word = torque = 0
-        isOperating = isCharging = isRunning =  0
+    command += `battery_current` + "','"
+    command += `motor_current` + "','"
+    command += `torque` + "','"
+    command += `heatsink_temp` + "','0','0','0');"
+
+    print current_date[0:10] + "  " + current_date[11:24] + "\n"
+##    print "20X: " + `status_word` + ", " + `mc_cap_voltage` + ", " + `battery_voltage`
+##    print "30X: " + `motor_velocity` + ", " + `motor_temp`
+##    print "40X: " + `battery_current` + ", " + `motor_current` + ", " + `torque` + ", " + `heatsink_temp`
+##    print ""
+
+    logsCurs.execute(command)
+    logsDB.commit()
+
+    #zero all data
+    battery_current = battery_voltage = motor_current = 0
+    motor_voltage = mc_cap_voltage = motor_velocity = 0
+    motor_temp = heatsink_temp = status_word = torque = 0
+    #isOperating = isCharging = isRunning =  0
         
-#close databases
-logsDB.close()
+###close databases
+##logsDB.close()
