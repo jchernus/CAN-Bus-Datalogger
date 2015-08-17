@@ -3,10 +3,11 @@
 import subprocess, os, re, sqlite3
 
 battery_current = battery_voltage = battery_power_operating = battery_power_charging = 0
-mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = motor_current = 0
+mc_cap_voltage = heatsink_temp = traction_state = motor_temp = motor_current = 0
 motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = max_batt_discharge_current = max_batt_charge_current = 0
 soc = isPluggedIn = isCharging = isOperating = isRunning = 0
 batt_high_temp = batt_low_temp = batt_high_temp_id = batt_low_temp_id = 0
+current_fault = ""
 
 odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
 
@@ -26,9 +27,8 @@ def parse_data(msg_id, data):
     global battery_current, battery_voltage, battery_power_operating, battery_power_charging
     global mc_cap_voltage, heatsink_temp, current_fault, traction_state, motor_temp, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
     global last_time_stamp, odometer, hours_plugged_in, hours_charging, hours_operating, hours_running, battery_energy_operating, battery_energy_charging
-    global max_batt_discharge_current, max_batt_charge_current
+    global max_batt_discharge_current, max_batt_charge_current, batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id
     global soc, isPluggedIn, isCharging, isOperating, isRunning
-    global batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id
     
     pattern = re.compile(r'\s+')
     data = re.sub(pattern, '', data)
@@ -181,7 +181,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += `vehicle_speed` + "','"
         command += `motor_velocity` + "','"
         
-        command += `current_fault` + "','"
+        command += current_fault + "','"
         command += `traction_state` + "','"
         
         command += `max_batt_discharge_current` + "','"
@@ -258,10 +258,11 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
         #zero all data
         battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
-        motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
+        motor_voltage = mc_cap_voltage = traction_state = vehicle_speed = motor_velocity = soc = 0
         max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
         batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
         odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = 0
+	current_fault = ""
         
 #close databases
 logsDB.close()

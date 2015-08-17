@@ -13,21 +13,25 @@ if (os.path.exists(db_path)):
         print output
         
         while (int(output) > 95):
-                #Clean out daily logs
-                logsCurs.execute("SELECT date FROM dailyLogs ORDER BY date LIMIT 1;") #get oldest date
-                date = logsCurs.fetchone()[0]
-                logsCurs.execute("DELETE FROM dailyLogs WHERE date = '%s';" % date)
+		try:
+		        #Clean out daily logs
+		        logsCurs.execute("SELECT date FROM dailyLogs ORDER BY date LIMIT 1;") #get oldest date
+		        date = logsCurs.fetchone()[0]
+		        logsCurs.execute("DELETE FROM dailyLogs WHERE date = '%s';" % date)
 
-                #Clean out fault logs
-                logsCurs.execute("SELECT date FROM faultLogs ORDER BY date LIMIT 1;") #get oldest date
-                date = logsCurs.fetchone()[0]
-                logsCurs.execute("DELETE FROM faultLogs WHERE date = '%s';" % date)
-                
-                logsDB.commit()
+		        #Clean out fault logs (FUTURE DEVELOPMENT)
+		        #logsCurs.execute("SELECT date FROM faultLogs ORDER BY date LIMIT 1;") #get oldest date
+		        #date = logsCurs.fetchone()[0]
+		        #logsCurs.execute("DELETE FROM faultLogs WHERE date = '%s';" % date)
+		        
+		        logsDB.commit()
 
-                p = subprocess.Popen("df -P $FILESYSTEM | awk '/root/' | awk '{ gsub(\"%\",\"\"); capacity = $5 }; END { print capacity }'", cwd="/data/", stdout=subprocess.PIPE, shell=True)
-                (output, err) = p.communicate()
-                print output
+		        p = subprocess.Popen("df -P $FILESYSTEM | awk '/root/' | awk '{ gsub(\"%\",\"\"); capacity = $5 }; END { print capacity }'", cwd="/data/", stdout=subprocess.PIPE, shell=True)
+		        (output, err) = p.communicate()
+                	print output
+		except:
+			print "We have a problem, Houston! We're out of space."
+			break
                 
         logsDB.close()
         print "Success"
