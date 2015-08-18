@@ -3,11 +3,10 @@
 import subprocess, os, re, sqlite3
 
 battery_current = battery_voltage = battery_power_operating = battery_power_charging = 0
-mc_cap_voltage = heatsink_temp = traction_state = motor_temp = motor_current = 0
+mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = motor_current = 0
 motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = max_batt_discharge_current = max_batt_charge_current = 0
 soc = isPluggedIn = isCharging = isOperating = isRunning = 0
 batt_high_temp = batt_low_temp = batt_high_temp_id = batt_low_temp_id = 0
-current_fault = ""
 
 odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
 
@@ -40,8 +39,6 @@ def parse_data(msg_id, data):
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_operating = battery_current * battery_voltage / 1000.0
-        if (isCharging):
-            battery_power_operating = 0 #don't show current in operating, it's going to be in charging
 
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
         
@@ -54,6 +51,7 @@ def parse_data(msg_id, data):
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
         battery_current = twos_comp(battery_current, 16)
         battery_current /= 10.0
+        battery_current = battery_current * -1
 
         if (battery_current) > 0.1:
             isCharging = 1
@@ -78,11 +76,7 @@ def parse_data(msg_id, data):
         mc_cap_voltage = int(data[2] + data[3] + data[0] + data[1], 16)/16.0
         heatsink_temp = int(data[4] + data[5], 16)
 
-        fault = str(int(data[8] + data[9] + data[6] + data[7], 16))
-        if fault not in str(current_fault):
-            if current_fault != 0:
-                current_fault += ", "
-            current_fault = str(current_fault) + fault
+        current_fault = int(data[8] + data[9] + data[6] + data[7], 16)
         
         traction_state = int(data[10] + data[11], 16)
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
@@ -120,6 +114,10 @@ def parse_data(msg_id, data):
             isRunning = 1
         else:
             isRunning = 0
+
+            
+    if (isCharging):
+        battery_power_operating = 0 #don't show current in operating, it's going to be in charging
 
 #connect to databases
 logsDB=sqlite3.connect(logsPath)
@@ -181,7 +179,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += `vehicle_speed` + "','"
         command += `motor_velocity` + "','"
         
-        command += current_fault + "','"
+        command += `current_fault` + "','"
         command += `traction_state` + "','"
         
         command += `max_batt_discharge_current` + "','"
@@ -258,11 +256,10 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
         #zero all data
         battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
-        motor_voltage = mc_cap_voltage = traction_state = vehicle_speed = motor_velocity = soc = 0
+        motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
         max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
         batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
         odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = 0
-	current_fault = ""
         
 #close databases
 logsDB.close()
