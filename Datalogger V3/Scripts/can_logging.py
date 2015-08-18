@@ -53,7 +53,7 @@ def parse_data(msg_id, data):
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_charging = battery_current * battery_voltage / 1000.0
 
-        soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
+        soc = int(data[10] + data[11] + data[8] + data[9], 16)/2.0
 		
 		isPluggedIn = 1
         if (battery_current) > 0.1:
@@ -68,22 +68,19 @@ def parse_data(msg_id, data):
     elif (msg_id == "475"):
         mc_cap_voltage = int(data[2] + data[3] + data[0] + data[1], 16)/16.0
         heatsink_temp = int(data[4] + data[5], 16)
-
         current_fault = int(data[8] + data[9] + data[6] + data[7], 16)
-        
         traction_state = int(data[10] + data[11], 16)
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
 
     elif (msg_id == "270"):
-        motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16) * 0.0625
+        motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16)/16.0
 
     elif (msg_id == "294"):
         max_batt_charge_current = int(data[6] + data[7] + data[4] + data[5], 16)
         max_batt_charge_current = twos_comp(max_batt_charge_current, 16)
         max_batt_discharge_current = int(data[10] + data[11] + data[8] + data[9], 16)
         mc_battery_current = int(data[14] + data[15] + data[12] + data[13], 16)
-        mc_battery_current = twos_comp(mc_battery_current, 16)
-        mc_battery_current = mc_battery_current * 0.0625
+        mc_battery_current = twos_comp(mc_battery_current, 16)/16.0
 
     elif (msg_id == "306"):
         motor_temp = int(data[2] + data[3] + data[0] + data[1], 16)
@@ -108,7 +105,6 @@ def parse_data(msg_id, data):
         else:
             isRunning = 0
 
-            
     if (isCharging):
         battery_power_operating = 0 #don't show current in operating, it's going to be in charging
 
@@ -151,7 +147,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     #if less than a second
     if time_span >= 1:
 
-        #write values to dailylogs database
+        #write values to dailyLogs database
         command = "INSERT INTO dailyLogs values('"
 
         command += current_date[0:10] + "','"
