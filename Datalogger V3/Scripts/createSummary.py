@@ -17,7 +17,7 @@ if (os.path.exists(db_path)):
 
         #Create summary fily
         with open(csv_path + "Summary.csv", 'w+') as file:
-                file.write("Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging) [kWh], Hours Charging [h], Hours Operating [h], Hours Running [h]\n")
+                file.write("Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging) [kWh], Hours Plugged In [h],Hours Charging [h], Hours Operating [h], Hours Running [h]\n")
                 for row in curs.execute("SELECT * FROM summary ORDER BY date"):
                         str_row = ' '.join([str(line).strip() + "," for line in row]).strip() + "\n"
                         file.write(str_row)
