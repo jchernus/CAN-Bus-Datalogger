@@ -42,29 +42,22 @@ def parse_data(msg_id, data):
 
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
         
-        data_6 = str(bin(int(data[12] + data[13], 16)))[2:]
-        while (len(data_6) < 8):
-            data_6 = '0' + data_6
         isOperating = 1  
 
     elif (msg_id == "478"):     # same as 477 but on charge
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
         battery_current = twos_comp(battery_current, 16)
         battery_current /= 10.0
-        battery_current = battery_current * -1
-
-        if (battery_current) > 0.1:
-            isCharging = 1
+        battery_current = battery_current * -1 #voltage will be negative because it's charging
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_charging = battery_current * battery_voltage / 1000.0
 
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
-        
-        data_6 = str(bin(int(data[12] + data[13], 16)))[2:]
-        while (len(data_6) < 8):
-            data_6 = '0' + data_6
-        isPluggedIn = 1
+		
+		isPluggedIn = 1
+        if (battery_current) > 0.1:
+            isCharging = 1
 
     elif (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
         batt_high_temp = int(data[0] + data[1], 16)
@@ -132,12 +125,12 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     
     #parse messages
     for line in lines:
-##        try:
-        data = line.strip().split("  ")
-        parse_data(data[2], data[3][3:].strip()) #message id, message
-##        except:
-##            print "Error parsing line: " + line
-##            pass
+        try:
+            data = line.strip().split("  ")
+            parse_data(data[2], data[3][3:].strip()) #message id, message
+        except:
+            print "Error parsing line: " + line
+            pass
 
     #get date & time
     p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S\"", stdout=subprocess.PIPE, shell=True)
