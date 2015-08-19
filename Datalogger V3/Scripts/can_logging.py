@@ -55,7 +55,7 @@ def parse_data(msg_id, data):
 
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2.0
 		
-		isPluggedIn = 1
+	isPluggedIn = 1
         if (battery_current) > 0.1:
             isCharging = 1
 
@@ -209,22 +209,22 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         if len(oldSummaryData) > 0:
             for datum in oldSummaryData:
                 odometer += float(oldSummaryData[0][1])
+                battery_energy_operating += float(oldSummaryData[0][6])
+                battery_energy_charging += float(oldSummaryData[0][7])
                 hours_plugged_in += float(oldSummaryData[0][2])
                 hours_charging += float(oldSummaryData[0][3])
                 hours_operating += float(oldSummaryData[0][4])
                 hours_running += float(oldSummaryData[0][5])
-                battery_energy_operating += float(oldSummaryData[0][6])
-                battery_energy_charging += float(oldSummaryData[0][7])
 
             #update summary data in database
             command = "UPDATE summary SET odometer="
-            command += `odometer` + ",hours_plugged_in="
+            command += `odometer` + ",energy_out="
+            command += `battery_energy_operating` + ",energy_in="
+            command += `battery_energy_charging` + ",hours_plugged_in="
             command += `hours_plugged_in` + ",hours_charging="
             command += `hours_charging` + ",hours_operating="
             command += `hours_operating` + ",hours_running="
-            command += `hours_running` + ",energy_out="
-            command += `battery_energy_operating` + ",energy_in="
-            command += `battery_energy_charging`
+            command += `hours_running` + ","
             command += " WHERE date='" + current_date[0:10] + "';" 
             
         else:
@@ -232,12 +232,12 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
             command = "INSERT INTO summary VALUES('"
             command += current_date[0:10] + "','"
             command += `odometer` + "','"
+            command += `battery_energy_operating` + "','"
+            command += `battery_energy_charging` + "','"
             command += `hours_plugged_in` + "','"
             command += `hours_charging` + "','"
             command += `hours_operating` + "','"
-            command += `hours_running` + "','"
-            command += `battery_energy_operating` + "','"
-            command += `battery_energy_charging`
+            command += `hours_running`
             command += "');"
 
         logsCurs.execute(command)
@@ -248,7 +248,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
         max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
         batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
-        odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = 0
+        odometer = battery_energy_operating = battery_energy_charging = hours_plugged_in = hours_charging = hours_operating = hours_running = 0
         
 #close databases
 logsDB.close()
