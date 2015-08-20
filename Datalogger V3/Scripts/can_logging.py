@@ -209,12 +209,12 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         if len(oldSummaryData) > 0:
             for datum in oldSummaryData:
                 odometer += float(oldSummaryData[0][1])
-                battery_energy_operating += float(oldSummaryData[0][6])
-                battery_energy_charging += float(oldSummaryData[0][7])
-                hours_plugged_in += float(oldSummaryData[0][2])
-                hours_charging += float(oldSummaryData[0][3])
-                hours_operating += float(oldSummaryData[0][4])
-                hours_running += float(oldSummaryData[0][5])
+                battery_energy_operating += float(oldSummaryData[0][2])
+                battery_energy_charging += float(oldSummaryData[0][3])
+                hours_plugged_in += float(oldSummaryData[0][4])
+                hours_charging += float(oldSummaryData[0][5])
+                hours_operating += float(oldSummaryData[0][6])
+                hours_running += float(oldSummaryData[0][7])
 
             #update summary data in database
             command = "UPDATE summary SET odometer="
