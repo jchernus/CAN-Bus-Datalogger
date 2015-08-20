@@ -224,7 +224,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
             command += `hours_plugged_in` + ",hours_charging="
             command += `hours_charging` + ",hours_operating="
             command += `hours_operating` + ",hours_running="
-            command += `hours_running` + ","
+            command += `hours_running`
             command += " WHERE date='" + current_date[0:10] + "';" 
             
         else:
