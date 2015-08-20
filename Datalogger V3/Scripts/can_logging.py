@@ -194,7 +194,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         logsDB.commit()
 
         #integrate certain variables over time to gets sums
-        odometer = (vehicle_speed * time_span)/3600.0
+        odometer = (abs(vehicle_speed) * time_span)/3600.0
         hours_plugged_in = (isPluggedIn * time_span)/3600.0
         hours_charging = (isCharging * time_span)/3600.0
         hours_operating = (isOperating * time_span)/3600.0
