@@ -27,10 +27,14 @@ if (os.path.exists(db_path)):
 	for date in dates:
                 filename = date + ".csv"
                 with open(csv_path + filename, 'w+') as file:
-                                file.write('Date, Time, SOC [%], Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Motor Controller Battery Current [A], Motor Controller Capacitor Voltage [V], Vehicle Speed [km/h], Motor Velocity [RPM], Current Highest Priority Fault, Traction State, Maximum Battery Discharge Current [A], Maximum Battery Charge Current [A], Motor Temperature [Celcius], Motor Controller Heatsink Temperature [Celcius], Battery Pack Highest Temperature [Celcius], Batt High Temp ID, Batter Pack Lowest Temperature [Celcius], Batt Low Temp ID, Plugged In, Charging, Operating, Running\n')
-                                for row in curs.execute("SELECT * FROM dailyLogs WHERE date = '" + str(date).strip() + "' ORDER BY time"):
-                                                str_row = ' '.join([str(line).strip() + "," for line in row]).strip() + "\n"
-                                                file.write(str_row)
+                        file.write("Date, Odometer [km], Battery Energy Out (Operating) [kWh], Battery Energy In (Charging) [kWh], Hours Plugged In [h],Hours Charging [h], Hours Operating [h], Hours Running [h]\n")
+                        for row in curs.execute("SELECT * FROM summary WHERE date = '" + str(date).strip() + "' LIMIT 1"):
+                                str_row = ' '.join([str(line).strip() + "," for line in row]).strip() + "\n"
+                                file.write(str_row)
+                        file.write('\nDate, Time, SOC [%], Battery Current [A], Battery Voltage [V], Battery Power Out (Operating) [kW], Battery Power In (Charging)[kW], Motor Current [AC A rms], Motor Voltage [AC V rms], Motor Controller Battery Current [A], Motor Controller Capacitor Voltage [V], Vehicle Speed [km/h], Motor Velocity [RPM], Current Highest Priority Fault, Traction State, Maximum Battery Discharge Current [A], Maximum Battery Charge Current [A], Motor Temperature [Celcius], Motor Controller Heatsink Temperature [Celcius], Battery Pack Highest Temperature [Celcius], Batt High Temp ID, Batter Pack Lowest Temperature [Celcius], Batt Low Temp ID, Plugged In, Charging, Operating, Running\n')
+                        for row in curs.execute("SELECT * FROM dailyLogs WHERE date = '" + str(date).strip() + "' ORDER BY time"):
+                                str_row = ' '.join([str(line).strip() + "," for line in row]).strip() + "\n"
+                                file.write(str_row)
                                                 
 	conn.close()
 
