@@ -1,2 +1,0 @@
-Start CAN logging script
-Turn on LED

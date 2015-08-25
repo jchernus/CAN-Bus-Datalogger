@@ -1,4 +1,0 @@
-#!/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-sleep 5
-(python /data/scripts/parse_file_Pi.py `find /data/RAW -type f -name "candump*.log" -mmin +1`; find /data/RAW -type f -name "candump*.log" -mmin +1 -exec rm -rf {} \;)&
