@@ -48,7 +48,6 @@ def parse_data(msg_id, data):
         battery_current = int(data[2] + data[3] + data[0] + data[1], 16)
         battery_current = twos_comp(battery_current, 16)
         battery_current /= 10.0
-        battery_current = battery_current * -1 #voltage will be negative because it's charging
         
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_charging = battery_current * battery_voltage / 1000.0
