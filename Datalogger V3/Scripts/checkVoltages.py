@@ -3,14 +3,46 @@
 import sqlite3, os, subprocess
 
 db_path = "/data/databases/Battery.db"
+cell_voltages = [0.0] * 96
+batt_stats = [[0.0] * 4] * 4
+pack_voltage = pack_soc = total_pack_cycles = 0.0
+
+def parse_data(msg_id, data):
+        global pack_voltage, pack_soc, total_pack_cycles, cell_voltages
+
+        if (msg_id == "F00D"):
+                pack_voltage = int(data[2] + data[3] + data[0] + data[1], 16) * 0.1
+        elif (msg_id == "F00F"):
+                pack_soc = int(data[0] + data[1], 16) * 0.5
+        elif (msg_id == "F018"):
+                total_pack_cycles = int(data[2] + data[3] + data[0] + data[1], 16)
+        else:
+                offset = 0
+                
+                if (msg_id == "F100"): offset = 0
+                elif (msg_id == "F101"): offset = 12
+                elif (msg_id == "F102"): offset = 24
+                elif (msg_id == "F103"): offset = 36
+                elif (msg_id == "F104"): offset = 48
+                elif (msg_id == "F105"): offset = 60
+                elif (msg_id == "F106"): offset = 72
+                elif (msg_id == "F107"): offset = 84
+                
+                for i in range (0, 12):
+                        cell_voltages[i+offset] = int(data[2*i] + data[2*i+1], 16) * 0.0001
 
 def update_database():
-        #get x messages
-        p = subprocess.Popen("./candump -t A -n 10 can0,XYZ:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+        
+        #send request for messages
+        p = subprocess.Popen("./cansend can0 F100#; ./cansend can0 F101#; ./cansend can0 F102#", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+        (output2, err2) = p.communicate()
+
+        #receive messages
+        p = subprocess.Popen("./candump -t A -n 8 can0,F100:7ff,F101:7ff,F102:7ff,F103:7ff,F104:7ff,F105:7ff,F106:7ff,F107:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
-        lines = output.strip().split("\n")
 
         #parse messages
+        lines = output.strip().split("\n")
         for line in lines:
             try:
                 data = line.strip().split("  ")
@@ -19,34 +51,67 @@ def update_database():
                 print "Error parsing line: " + line
                 pass
 
-        #record messages
-        curs.execute("")
-        conn.commit()
+        #Do some calculations
+        for j in range (0,4):
+                pack_max = pack_min = pack_avg
+                for k in range (0,24):
+                        if cell_voltage[k + 24*j] > pack_max:
+                                pack_max = cell_voltage[k + 24*j]
+                        elif cell_voltage[k + 24*j] < pack_min:
+                                pack_min = cell_voltage[k + 24*j]
+                        pack_avg += cell_voltage[k + 24*j]
+                batt_stats[j][0] = pack_avg/24.0
+                batt_stats[j][1] = pack_max
+                batt_stats[j][2] = pack_min
+
+        #Write to database
+        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
+        (output, err) = p.communicate()
+        current_date = output
+
+        curs.execute("DELETE FROM summary;")
+        curs.execute("VACUUM;")
+        
+        command = "INSERT INTO summary VALUES('"
+        command += current_date[:11] + "','" + current_date[11:19] + "','"
+        command += pack_voltage
+        command += pack_soc
+        command += total_pack_cycles
+
+        for j in range (0,4):
+                for k in range (0,4):
+                        command += batt_stats[j][k] + "','"
+        
+        for i in range (0,96):
+                command += cell_voltages[i] + "','"
+        command = command[:-2] + "');"
+        curs.execute(command)
+        
+        print "success"
+
+#record messages
+conn = sqlite3.connect(db_path)
+curs = conn.cursor()
 
 if (os.path.exists(db_path)):
-        conn = sqlite3.connect(db_path)
-        curs = conn.cursor()
+        curs.execute("SELECT date, time FROM battery LIMIT 1")
+        data = curs.fetchall()
+        datumDate = data[0][0]
+        datumTime = data[0][1]
 
-        for row in curs.execute("SELECT * FROM battery ORDER BY date DESC LIMIT 1"):
+        needRefresh = False
+        
+        #check time, if less than 1 minute ago, good
+        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
+        (output, err) = p.communicate()
+        current_date = output
 
-                datumDate = 0
-                datumTime = 0
-
-                needRefresh = False
-                
-                #check time, if less than 1 minute ago, good
-                p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
-                (output, err) = p.communicate()
-                current_date = output
-
-                if (datumDate != current_date[:11]) or (datumTime != current_date[11:19]):
-                        update_database()
+        if (datumDate != current_date[:10] or (datumTime != current_date[11:16])):
+                update_database()
+        else:
+                print "success"
     
 else:
-        #create database 
-	conn=sqlite3.connect(db_path)
-	curs=conn.cursor()
-
 	curs.execute("""CREATE TABLE battery(date DATE, time TIME, packVoltage REAL, packSOC INTEGER, 
         batt1Avg REAL, batt1High REAL, batt1Low REAL, batt1Temp REAL, 
         batt2Avg REAL, batt2High REAL, batt2Low REAL, batt2Temp REAL, 
@@ -67,4 +132,5 @@ else:
 	#Fill it with stuff!
 	update_database()
 
+conn.commit()
 conn.close()
