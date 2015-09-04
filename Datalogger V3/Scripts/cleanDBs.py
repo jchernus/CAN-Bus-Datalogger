@@ -18,6 +18,7 @@ if (os.path.exists(db_path)):
 		        logsCurs.execute("SELECT date FROM dailyLogs ORDER BY date LIMIT 1;") #get oldest date
 		        date = logsCurs.fetchone()[0]
 		        logsCurs.execute("DELETE FROM dailyLogs WHERE date = '%s';" % date)
+		        logsCurs.execute("VACUUM;")
 
 		        #Clean out fault logs (FUTURE DEVELOPMENT)
 		        #logsCurs.execute("SELECT date FROM faultLogs ORDER BY date LIMIT 1;") #get oldest date

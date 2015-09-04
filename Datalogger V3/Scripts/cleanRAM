@@ -1,5 +1,5 @@
 #!/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-find /var/tmp/logs/ -type f -name "20*.zip" -mmin +4 -exec rm -f -- {} \;
-find /var/tmp/logs/ -type f -name "20*.csv" -mmin +4 -exec rm -f -- {} \;
+find /var/tmp/logs/ -type f -name "20*.zip" -mmin +$1 -exec rm -f -- {} \;
+find /var/tmp/logs/ -type f -name "20*.csv" -mmin +$1 -exec rm -f -- {} \;

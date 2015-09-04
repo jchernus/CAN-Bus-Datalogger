@@ -10,7 +10,6 @@ batt_high_temp = batt_low_temp = batt_high_temp_id = batt_low_temp_id = 0
 
 odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
 
-previous_date = ""
 previous_time = 0
 
 logsPath = "/data/databases/Logs.db"
@@ -122,6 +121,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     for line in lines:
         try:
             data = line.strip().split("  ")
+            print data
             parse_data(data[2], data[3][3:].strip()) #message id, message
         except:
             print "Error parsing line: " + line
@@ -141,7 +141,6 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         if time_span > 2: #if time between time stamps is too long, assume 1s
             time_span = 1
     previous_time = current_time
-    previous_date = current_date
         
     #if less than a second
     if time_span >= 1:
@@ -188,8 +187,14 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     
         command += "');"
 
-        #print command
         logsCurs.execute(command)
+
+        command = "INSERT OR IGNORE INTO days values('"
+        command += current_date[0:10]
+        command += "');"
+
+        logsCurs.execute(command)
+        
         logsDB.commit()
 
         #integrate certain variables over time to gets sums
