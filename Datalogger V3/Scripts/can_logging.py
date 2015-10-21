@@ -54,7 +54,7 @@ def parse_data(msg_id, data):
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2.0
 		
 	isPluggedIn = 1
-        if (battery_current) > 0.1:
+        if (battery_current) < 0.1:
             isCharging = 1
 
     elif (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
@@ -121,7 +121,6 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     for line in lines:
         try:
             data = line.strip().split("  ")
-            print data
             parse_data(data[2], data[3][3:].strip()) #message id, message
         except:
             print "Error parsing line: " + line
@@ -164,7 +163,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += `mc_cap_voltage` + "','"
         
         command += `vehicle_speed` + "','"
-        command += `motor_velocity` + "','"
+        command += str(motor_velocity) + "','"
         
         command += `current_fault` + "','"
         command += `traction_state` + "','"
