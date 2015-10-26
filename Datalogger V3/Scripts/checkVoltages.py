@@ -5,16 +5,33 @@ import sqlite3, os, subprocess, re
 db_path = "/data/databases/Battery.db"
 current_date = ""
 cell_voltages = [0.0] * 96
-batt_stats = [[0.0] * 3] * 4
+batt1_stats = [0.0, 0.0, 4.0, 0.0]
+batt2_stats = [0.0, 0.0, 4.0, 0.0]
+batt3_stats = [0.0, 0.0, 4.0, 0.0]
+batt4_stats = [0.0, 0.0, 4.0, 0.0]
 pack_voltage = pack_soc = total_pack_cycles = 0.0
 
-PIDs = ['F100','F101', 'F103', 'F104', 'F106', 'F107', 'F109', 'F10A']
+PIDs = ['F100','F101', 'F103', 'F104', 'F106', 'F107', 'F109', 'F10A', 'F00D', 'F00F', 'F018']
 cellVDict = {}
 
-def parse_data():
-        global pack_voltage, pack_soc, total_pack_cycles, cell_voltages
+def parse_message():
+        global batt_stats
 
-        for PID in PIDS:
+        if (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
+                batt_high_temp = int(data[0] + data[1], 16)
+                batt_low_temp = int(data[4] + data[5], 16)
+                batt_high_temp_id = int(data[8] + data[9], 16)
+                batt_low_temp_id = int(data[10] + data[11], 16)
+
+                for x in range (0,4):
+                        batt_stats[x][3] = "N/A"
+                batt_stats[batt_high_temp_id][3] = batt_high_temp
+                batt_stats[batt_low_temp_id][3] = batt_low_temp
+
+def parse_data():
+        global pack_voltage, pack_soc, total_pack_cycles, cell_voltages, batt_stats
+
+        for PID in PIDs:
 
                 #remove whitespaces entirely
                 pattern = re.compile(r'\s+')
@@ -22,7 +39,7 @@ def parse_data():
 
                 if "F0" in PID:         #it's a battery pack field
                         if PID == "F00D":
-                                pack_voltage = int(data[8] + data[9] + data[10] + data[11], 16) * 0.1
+                                pack_voltage = int(data[8] + data[9] + data[10] + data[11], 16) * 0.01
                         elif PID == "F00F":
                                 pack_soc = int(data[8] + data[9], 16) * 0.5
                         elif PID == "F018":
@@ -35,111 +52,106 @@ def parse_data():
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         
                                         cell_voltages[x] = voltage
-                                        if voltage > battery_stats[0][1]:
-                                                battery_stats[0][1] = voltage
-                                        elif voltage < battery_stats[0][2]:
-                                                battery_stats[0][2] = voltage
-                                        battery_stats[0][0] = battery_stats[0][0] + voltage
+                                        if voltage > batt1_stats[1]:
+                                                batt1_stats[1] = voltage
+                                        elif voltage < batt1_stats[2]:
+                                                batt1_stats[2] = voltage
+                                        batt1_stats[0] = batt1_stats[0] + voltage
                         elif PID == "F101":
-                                for x in range (12,23):
+                                for x in range (12,24):
                                         i = (x - 12) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         
                                         cell_voltages[x] = voltage
-                                        if voltage > battery_stats[0][1]:
-                                                battery_stats[0][1] = voltage
-                                        elif voltage < battery_stats[0][2]:
-                                                battery_stats[0][2] = voltage
-                                        battery_stats[0][0] = battery_stats[0][0] + voltage
-                                        
+                                        if voltage > batt1_stats[1]:
+                                                batt1_stats[1] = voltage
+                                        elif voltage < batt1_stats[2]:
+                                                batt1_stats[2] = voltage
+                                        batt1_stats[0] = batt1_stats[0] + voltage
                         elif PID == "F103":
-                                for x in range (24,35):
+                                for x in range (24,36):
                                         i = (x - 24) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         
                                         cell_voltages[x] = voltage
-                                        if voltage > battery_stats[1][1]:
-                                                battery_stats[1][1] = voltage
-                                        elif voltage < battery_stats[1][2]:
-                                                battery_stats[1][2] = voltage
-                                        battery_stats[1][0] = battery_stats[1][0] + voltage
+                                        if voltage > batt2_stats[1]:
+                                                batt2_stats[1] = voltage
+                                        elif voltage < batt2_stats[2]:
+                                                batt2_stats[2] = voltage
+                                        batt2_stats[0] = batt2_stats[0] + voltage
                         elif PID == "F104":
-                                for x in range (36,47):
+                                for x in range (36,48):
                                         i = (x - 36) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         
                                         cell_voltages[x] = voltage
-                                        if voltage > battery_stats[1][1]:
-                                                battery_stats[1][1] = voltage
-                                        elif voltage < battery_stats[1][2]:
-                                                battery_stats[1][2] = voltage
-                                        battery_stats[1][0] = battery_stats[1][0] + voltage
+                                        if voltage > batt2_stats[1]:
+                                                batt2_stats[1] = voltage
+                                        elif voltage < batt2_stats[2]:
+                                                batt2_stats[2] = voltage
+                                        batt2_stats[0] = batt2_stats[0] + voltage
                                         
                         elif PID == "F106":
-                                for x in range (48,59):
+                                for x in range (48,60):
                                         i = (x - 48) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         cell_voltages[x] = voltage
                                         
-                                        if voltage > battery_stats[2][1]:
-                                                battery_stats[2][1] = voltage
-                                        elif voltage < battery_stats[2][2]:
-                                                battery_stats[2][2] = voltage
-                                        battery_stats[2][0] = battery_stats[2][0] + voltage
+                                        if voltage > batt3_stats[1]:
+                                                batt3_stats[1] = voltage
+                                        elif voltage < batt3_stats[2]:
+                                                batt3_stats[2] = voltage
+                                        batt3_stats[0] = batt3_stats[0] + voltage
                         elif PID == "F107":
-                                for x in range (60,71):
+                                for x in range (60,72):
                                         i = (x - 60) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         cell_voltages[x] = voltage
                                         
-                                        if voltage > battery_stats[2][1]:
-                                                battery_stats[2][1] = voltage
-                                        elif voltage < battery_stats[2][2]:
-                                                battery_stats[2][2] = voltage
-                                        battery_stats[2][0] = battery_stats[2][0] + voltage
+                                        if voltage > batt3_stats[1]:
+                                                batt3_stats[1] = voltage
+                                        elif voltage < batt3_stats[2]:
+                                                batt3_stats[2] = voltage
+                                        batt3_stats[0] = batt3_stats[0] + voltage
                                         
                         elif PID == "F109":
-                                for x in range (72,83):
+                                for x in range (72,84):
                                         i = (x - 72) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         cell_voltages[x] = voltage
                                         
-                                        if voltage > battery_stats[3][1]:
-                                                battery_stats[3][1] = voltage
-                                        elif voltage < battery_stats[3][2]:
-                                                battery_stats[3][2] = voltage
-                                        battery_stats[3][0] = battery_stats[3][0] + voltage
+                                        if voltage > batt4_stats[1]:
+                                                batt4_stats[1] = voltage
+                                        elif voltage < batt4_stats[2]:
+                                                batt4_stats[2] = voltage
+                                        batt4_stats[0] = batt4_stats[0] + voltage
                         elif PID == "F10A":
-                                for x in range (84,95):
+                                for x in range (84,96):
                                         i = (x - 84) * 4
                                         voltage = int(data[i] + data[i+1] + data[i+2] + data[i+3], 16) * 0.0001
                                         cell_voltages[x] = voltage
                                         
-                                        if voltage > battery_stats[3][1]:
-                                                battery_stats[3][1] = voltage
-                                        elif voltage < battery_stats[3][2]:
-                                                battery_stats[3][2] = voltage
-                                        battery_stats[3][0] = battery_stats[3][0] + voltage
+                                        if voltage > batt4_stats[1]:
+                                                batt4_stats[1] = voltage
+                                        elif voltage < batt4_stats[2]:
+                                                batt4_stats[2] = voltage
+                                        batt4_stats[0] = batt4_stats[0] + voltage
                 else:
                         print "Error: Unknown CAN Message. Message: " + cellVDict[PID]
                         break
 
         #divide sums by 24 to get the average        
-        for j in range (0,4):
-                battery_stats[j][0] = battery_stats[j][0] / 24.0
+        batt1_stats[0] = batt1_stats[0] / 24.0
+        batt2_stats[0] = batt2_stats[0] / 24.0        
+        batt3_stats[0] = batt3_stats[0] / 24.0
+        batt4_stats[0] = batt4_stats[0] / 24.0
 
 def update_database():
         global current_date
-        
-        #get current date & time
-        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
-        (output, err) = p.communicate()
-        current_date = output
 
-        for PID in PIDS:
+        for PID in PIDs:
                 #send request for cell voltages
-                p = subprocess.Popen("./cansend can0 7E3#0422" + PID + "00000000", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
-                (output, err) = p.communicate()
+                p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#0422" + PID + "00000000) &", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
 
                 #receive message
                 p = subprocess.Popen("./candump -t A -n 1 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
@@ -147,11 +159,9 @@ def update_database():
 
                 cellVDict[PID] = output.strip().split("  ")[3][3:].strip()
                 
-                if ("7EB 10__62F1") in output:          #cell voltages                                                                                          #Update values once known
-
+                if ("7EB  [8] 10 1B 62 F1") in output:          #cell voltages                                                                                          #Update values once known
                         #send request for more data
-                        p = subprocess.Popen("./cansend can0 7E3#30", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
-                        (output, err) = p.communicate()
+                        p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#30) &", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
 
                         #receive remaining message
                         p = subprocess.Popen("./candump -t A -n 3 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
@@ -162,37 +172,51 @@ def update_database():
                         for line in lines:
                                 try:
                                     data = line.strip().split("  ")
-                                    cellVDict[PID] = cellVDict[PID] + " " + data[3][3:].strip()                                                               #Grab just the cell voltage data, no headers
+                                    cellVDict[PID] = cellVDict[PID] + " " + data[3][3:].strip()[3:]  
                                 except:
                                     print "Error: unable to parse line. Line: " + line
                                     pass
-                elif ("7EB 10__62F0") in output:        #pack data
+                elif ("7EB  [8] 04 62 F0" in output) or ("7EB  [8] 05 62 F0" in output):        #pack data
                         #all data acquired
-                        cellVDict[PID] = output.strip().split("  ")[3][3:].strip()                                                                            #Am I grabbing the correct data?
+                        cellVDict[PID] = output.strip().split("  ")[3][3:].strip()
                 else:
                         #ERROR
                         print "Error: did not receive reply from BMS."
                         break
 
-        parse_data()        
+        parse_data()
+
+        print "\nBATTERY STATS"
+        print batt1_stats
+        print batt2_stats
+        print batt3_stats
+        print batt4_stats
+        print "\nCELL VOLTAGES"
+        print cell_voltages
 
         #Write to database
-        curs.execute("DELETE FROM summary;")
+        curs.execute("DELETE FROM battery;")
         curs.execute("VACUUM;")
         
-        command = "INSERT INTO summary VALUES('"
+        command = "INSERT INTO battery VALUES('"
         command += current_date[:11] + "','" + current_date[11:19] + "','"
-        command += pack_voltage
-        command += pack_soc
-        command += total_pack_cycles
+        command += str(pack_voltage) + "','"
+        command += str(pack_soc) + "','"
+        command += str(total_pack_cycles) + "','"
 
         for j in range (0,4):
-                for k in range (0,3):
-                        command += batt_stats[j][k] + "','"
+                command += str(batt1_stats[j]) + "','"
+        for j in range (0,4):
+                command += str(batt2_stats[j]) + "','"
+        for j in range (0,4):
+                command += str(batt3_stats[j]) + "','"
+        for j in range (0,4):
+                command += str(batt4_stats[j]) + "','"
         
         for i in range (0,96):
-                command += cell_voltages[i] + "','"
-        command = command[:-2] + "');"
+                command += str(cell_voltages[i]) + "','"
+                
+        command = command[:-2] + ");"
         curs.execute(command)
         
         print "success"
@@ -202,29 +226,39 @@ conn = sqlite3.connect(db_path)
 curs = conn.cursor()
 
 if (os.path.exists(db_path)):
+        print "Database exists!"
+        
         curs.execute("SELECT date, time FROM battery LIMIT 1")
         data = curs.fetchall()
-        datumDate = data[0][0]
-        datumTime = data[0][1]
+        print "Data length: " + str(len(data))
+        if (len(data) > 0): #database not empty
+                datumDate = data[0][0]
+                print "datumDate = " + datumDate
+                datumTime = data[0][1]
+                print "datumTime = " + datumTime
+                
+                #check time, if less than 1 minute ago, good
+                p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
+                (output, err) = p.communicate()
+                current_date = output
+                
+                print "\ndatumDate = " + current_date[:10]
+                print "datumTime = " + current_date[11:16]       
 
-        needRefresh = False
-        
-        #check time, if less than 1 minute ago, good
-        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
-        (output, err) = p.communicate()
-        current_date = output
-
-        if (datumDate != current_date[:10] or (datumTime != current_date[11:16])):
-                update_database()
+                if (datumDate != current_date[:10] or (datumTime != current_date[11:16])):
+                        update_database()
+                else:
+                        print "success"
         else:
-                print "success"
+                #there are no entries in the database
+                update_database()
     
 else:
-	curs.execute("""CREATE TABLE battery(date DATE, time TIME, packVoltage REAL, packSOC INTEGER, 
-        batt1Avg REAL, batt1High REAL, batt1Low REAL, batt1Temp REAL, 
-        batt2Avg REAL, batt2High REAL, batt2Low REAL, batt2Temp REAL, 
-        batt3Avg REAL, batt3High REAL, batt3Low REAL, batt3Temp REAL, 
-        batt4Avg REAL, batt4High REAL, batt4Low REAL, batt4Temp REAL, 
+	curs.execute("""CREATE TABLE battery(date DATE, time TIME, packVoltage REAL, packSOC INTEGER, totalCycles INTEGER, 
+        batt1Avg REAL, batt1High REAL, batt1Low REAL, batt1Temp TEXT, 
+        batt2Avg REAL, batt2High REAL, batt2Low REAL, batt2Temp TEXT, 
+        batt3Avg REAL, batt3High REAL, batt3Low REAL, batt3Temp TEXT, 
+        batt4Avg REAL, batt4High REAL, batt4Low REAL, batt4Temp TEXT, 
         cell1 REAL, cell2 REAL, cell3 REAL, cell4 REAL, cell5 REAL, cell6 REAL, cell7 REAL, cell8 REAL, cell9 REAL, cell10 REAL, cell11 REAL, cell12 REAL,
         cell13 REAL, cell14 REAL, cell15 REAL, cell16 REAL, cell17 REAL, cell18 REAL, cell19 REAL, cell20 REAL, cell21 REAL, cell22 REAL, cell23 REAL, cell24 REAL,
         cell25 REAL, cell26 REAL, cell27 REAL, cell28 REAL, cell29 REAL, cell30 REAL, cell31 REAL, cell32 REAL, cell33 REAL, cell34 REAL, cell35 REAL, cell36 REAL,
@@ -236,6 +270,11 @@ else:
         )""")
 
 	conn.commit()
+
+        #get current date & time
+        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
+        (output, err) = p.communicate()
+        current_date = output
 
 	#Fill it with stuff!
 	update_database()
