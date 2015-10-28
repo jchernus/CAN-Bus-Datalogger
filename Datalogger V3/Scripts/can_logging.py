@@ -121,7 +121,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     for line in lines:
         try:
             data = line.strip().split("  ")
-            parse_data(data[2], data[3][3:].strip()) #message id, message
+            parse_data(data[2], data[3][3:].strip()) #message id, message data
         except:
             print "Error parsing line: " + line
             pass
