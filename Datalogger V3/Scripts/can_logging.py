@@ -54,7 +54,7 @@ def parse_data(msg_id, data):
         soc = int(data[10] + data[11] + data[8] + data[9], 16)/2.0
 		
 	isPluggedIn = 1
-        if (battery_current) < 0.1:
+        if (battery_current) < -0.1:
             isCharging = 1
 
     elif (msg_id == "479" or msg_id == "480"):     # these two transmit the same info

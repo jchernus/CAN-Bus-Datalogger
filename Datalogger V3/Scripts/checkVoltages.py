@@ -1,46 +1,28 @@
 #!/usr/bin/env python
 
 import sqlite3, os, subprocess, re
-import threading, traceback
 
 db_path = "/data/databases/Battery.db"
 current_date = ""
 cell_voltages = [0.0] * 96
-batt1_stats = [0.0, 0.0, 4.0, "N/A"]
-batt2_stats = [0.0, 0.0, 4.0, "N/A"]
-batt3_stats = [0.0, 0.0, 4.0, "N/A"]
-batt4_stats = [0.0, 0.0, 4.0, "N/A"]
+batt1_stats = [0.0, 0.0, 4.0]
+batt2_stats = [0.0, 0.0, 4.0]
+batt3_stats = [0.0, 0.0, 4.0]
+batt4_stats = [0.0, 0.0, 4.0]
+battHighTemp, battLowTemp, battHighTempId, battLowTempId = 0, 0, 0, 0
 pack_voltage = pack_soc = total_pack_cycles = 0.0
 
 PIDs = ['F100','F101', 'F103', 'F104', 'F106', 'F107', 'F109', 'F10A', 'F00D', 'F00F', 'F018']
 cellVDict = {}
 
 def parse_message(msg_id, data):
-        global batt1_stats, batt2_stats, batt3_stats, batt4_stats
+        global battHighTemp, battLowTemp, battHighTempId, battLowTempId
 
         if (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
-                batt_high_temp = int(data[0] + data[1], 16)
-                batt_low_temp = int(data[4] + data[5], 16)
-                batt_high_temp_id = int(data[8] + data[9], 16)
-                batt_low_temp_id = int(data[10] + data[11], 16)
-                 
-                if (batt_low_temp_id == 0):
-                        batt1_stats[3] = batt_low_temp
-                elif (batt_low_temp_id == 1):
-                        batt2_stats[3] = batt_low_temp
-                elif (batt_low_temp_id == 2):
-                        batt3_stats[3] = batt_low_temp
-                elif (batt_low_temp_id == 3):
-                        batt4_stats[3] = batt_low_temp
-                        
-                if (batt_high_temp_id == 0):
-                        batt1_stats[3] = batt_high_temp
-                elif (batt_high_temp_id == 1):
-                        batt2_stats[3] = batt_high_temp
-                elif (batt_high_temp_id == 2):
-                        batt3_stats[3] = batt_high_temp
-                elif (batt_high_temp_id == 3):
-                        batt4_stats[3] = batt_high_temp
+                battHighTemp = int(data[0] + data[1], 16)
+                battLowTemp = int(data[4] + data[5], 16)
+                battHighTempId = int(data[8] + data[9], 16)
+                battLowTempId = int(data[10] + data[11], 16)
 
 def parse_data():
         global pack_voltage, pack_soc, total_pack_cycles, cell_voltages, batt_stats
@@ -167,10 +149,10 @@ def update_database():
                 p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#0422" + PID + "00000000) &", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
 
                 #receive message
-                p = subprocess.Popen("./candump -t A -n 1 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+                p = subprocess.Popen("timeout 1 ./candump -t A -n 1 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
                 (output, err) = p.communicate()
 
-                if err == "0":  # got the response message
+                if len(output) > 0:  # got the response message
 
                         cellVDict[PID] = output.strip().split("  ")[3][3:].strip()
                         
@@ -179,10 +161,10 @@ def update_database():
                                 p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#30) &", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
 
                                 #receive remaining message
-                                p = subprocess.Popen("./candump -t A -n 3 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+                                p = subprocess.Popen("timeout 2 ./candump -t A -n 3 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
                                 (output, err) = p.communicate()
 
-                                if err == "0":  # got the response message
+                                if len(output) > 0:  # got the response message
                                 
                                         lines = output.strip().split("\n")
                                         
@@ -207,10 +189,10 @@ def update_database():
                         return "Error: did not receive reply from BMS."
 
         #retrieve pack temperature information
-        p = subprocess.Popen("./candump -t A -n 1 can0,479:7ff,480:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+        p = subprocess.Popen("timeout 2 ./candump -t A -n 1 can0,479:7ff,480:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
 
-        if err == "0":  # got the response message
+        if len(output) > 0:  # got the response message
                 lines = output.strip().split("\n")
                 
                 data = lines[0].strip().split("  ")
@@ -240,14 +222,16 @@ def update_database():
         command += str(pack_voltage) + "','"
         command += str(pack_soc) + "','"
         command += str(total_pack_cycles) + "','"
+		
+	command += str(battHighTemp) + "','" + str(battLowTemp) + "','" + str(battHighTempId) + "','" + str(battLowTempId) + "','"
 
-        for j in range (0,4):
+        for j in range (0,3):
                 command += str(batt1_stats[j]) + "','"
-        for j in range (0,4):
+        for j in range (0,3):
                 command += str(batt2_stats[j]) + "','"
-        for j in range (0,4):
+        for j in range (0,3):
                 command += str(batt3_stats[j]) + "','"
-        for j in range (0,4):
+        for j in range (0,3):
                 command += str(batt4_stats[j]) + "','"
         
         for i in range (0,96):
@@ -277,7 +261,6 @@ if (os.path.exists(db_path)):
                 current_date = output     
 
                 if (datumDate != current_date[:10] or (datumTime != current_date[11:16])):
-                        print "Updating database..."
                         print update_database()
                 else:
                         print "success"
@@ -287,10 +270,11 @@ if (os.path.exists(db_path)):
     
 else:
 	curs.execute("""CREATE TABLE battery(date DATE, time TIME, packVoltage REAL, packSOC INTEGER, totalCycles INTEGER, 
-        batt1Avg REAL, batt1High REAL, batt1Low REAL, batt1Temp TEXT, 
-        batt2Avg REAL, batt2High REAL, batt2Low REAL, batt2Temp TEXT, 
-        batt3Avg REAL, batt3High REAL, batt3Low REAL, batt3Temp TEXT, 
-        batt4Avg REAL, batt4High REAL, batt4Low REAL, batt4Temp TEXT, 
+		battHighTemp REAL, battLowTemp REAL, battHighTempId INTEGER, battLowTempId INTEGER,
+        batt1Avg REAL, batt1High REAL, batt1Low REAL,
+        batt2Avg REAL, batt2High REAL, batt2Low REAL, 
+        batt3Avg REAL, batt3High REAL, batt3Low REAL,
+        batt4Avg REAL, batt4High REAL, batt4Low REAL, 
         cell1 REAL, cell2 REAL, cell3 REAL, cell4 REAL, cell5 REAL, cell6 REAL, cell7 REAL, cell8 REAL, cell9 REAL, cell10 REAL, cell11 REAL, cell12 REAL,
         cell13 REAL, cell14 REAL, cell15 REAL, cell16 REAL, cell17 REAL, cell18 REAL, cell19 REAL, cell20 REAL, cell21 REAL, cell22 REAL, cell23 REAL, cell24 REAL,
         cell25 REAL, cell26 REAL, cell27 REAL, cell28 REAL, cell29 REAL, cell30 REAL, cell31 REAL, cell32 REAL, cell33 REAL, cell34 REAL, cell35 REAL, cell36 REAL,
