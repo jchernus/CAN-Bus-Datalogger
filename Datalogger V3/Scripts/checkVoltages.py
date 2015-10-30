@@ -18,6 +18,9 @@ cellVDict = {}
 def parse_message(msg_id, data):
         global battHighTemp, battLowTemp, battHighTempId, battLowTempId
 
+        pattern = re.compile(r'\s+')
+        data = re.sub(pattern, '', data)
+
         if (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
                 battHighTemp = int(data[0] + data[1], 16)
                 battLowTemp = int(data[4] + data[5], 16)
@@ -242,13 +245,24 @@ def update_database():
         
         return "success"
 
+#note time
+p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
+(output, err) = p.communicate()
+current_date = output 
+
 #record messages
 conn = sqlite3.connect(db_path)
 curs = conn.cursor()
 
-if (os.path.exists(db_path)):
-        
+tableExists = False
+try:
         curs.execute("SELECT date, time FROM battery LIMIT 1")
+        tableExists = True
+
+except:
+        pass
+
+if (tableExists):
         data = curs.fetchall()
         
         if (len(data) > 0): #database not empty
@@ -256,10 +270,6 @@ if (os.path.exists(db_path)):
                 datumTime = data[0][1].strip()
                 
                 #check time, if less than 1 minute ago, good
-                p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
-                (output, err) = p.communicate()
-                current_date = output     
-
                 if (datumDate != current_date[:10] or (datumTime != current_date[11:16])):
                         print update_database()
                 else:
@@ -286,13 +296,6 @@ else:
         )""")
 
 	conn.commit()
-
-        #get current date & time
-        p = subprocess.Popen("date +\"%Y-%m-%d %H:%M\"", stdout=subprocess.PIPE, shell=True) 
-        (output, err) = p.communicate()
-        current_date = output
-
-	#Fill it with stuff!
 	print update_database()
 
 conn.commit()

@@ -35,11 +35,12 @@ if (os.path.exists(db_path)):
                         for row in curs.execute("SELECT * FROM dailyLogs WHERE date = '" + str(date).strip() + "' ORDER BY time"):
                                 str_row = ' '.join([str(line).strip() + "," for line in row]).strip() + "\n"
                                 file.write(str_row)
-                #Zip files
-                p = subprocess.Popen("zip -m " + csv_path + todayDateTime + ".zip " + date + ".csv", cwd=csv_path, stdout=subprocess.PIPE, shell=True)
-                (output, err) = p.communicate()
                                                 
 	conn.close()
+
+	#Zip files
+	p = subprocess.Popen("zip " + csv_path + todayDateTime + ".zip " + ' '.join(date + ".csv" for date in dates), cwd=csv_path, stdout=subprocess.PIPE, shell=True)
+	(output, err) = p.communicate()
 	
 	print todayDateTime + ".zip"
         
