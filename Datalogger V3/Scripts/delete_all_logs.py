@@ -8,6 +8,7 @@ curs=conn.cursor()
 #curs.execute("""DELETE FROM dailylogs""")
 curs.execute("""DROP TABLE dailyLogs;""")
 curs.execute("""DELETE FROM days;""")
+curs.execute("""DELETE FROM faults;""")
 curs.execute("VACUUM;")
 conn.commit()
 curs.execute("""CREATE TABLE `dailyLogs` (

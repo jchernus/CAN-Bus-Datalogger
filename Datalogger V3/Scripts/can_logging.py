@@ -141,7 +141,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
             time_span = 1
     previous_time = current_time
         
-    #if less than a second
+    #if over a second
     if time_span >= 1:
 
         #write values to dailyLogs database
@@ -193,7 +193,15 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += "');"
 
         logsCurs.execute(command)
-        
+
+        if (current_fault != 0):
+            
+            command = "INSERT INTO faults values('"
+            command += current_date[0:10] + "','"
+            command += current_date[11:19] + "','"
+            command += str(current_fault) + "');"
+            logsCurs.execute(command)
+
         logsDB.commit()
 
         #integrate certain variables over time to gets sums

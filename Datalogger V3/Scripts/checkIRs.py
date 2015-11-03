@@ -175,7 +175,7 @@ def update_database():
                                         for line in lines:
                                                 try:
                                                     data = line.strip().split("  ")
-                                                    cellIRDict[PID] = cellIRDict[PID] + " " + data[3][3:].strip()[3:]  
+                                                    cellIRDict[PID] = cellIRDict[PID] + data[3][3:].strip()[2:]  
                                                 except:
                                                     return "Error: unable to parse line. Line: " + line
                                 else:

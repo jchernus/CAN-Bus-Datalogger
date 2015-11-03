@@ -11,6 +11,7 @@ curs=conn.cursor()
 for date in dates:
     curs.execute("DELETE FROM dailylogs WHERE date = '" + date + "';")
     curs.execute("DELETE FROM days WHERE date = '" + date + "';")
+    curs.execute("DELETE FROM faults WHERE date = '" + date + "';")
     curs.execute("VACUUM;")
 
 conn.commit()
