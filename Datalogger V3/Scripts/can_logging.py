@@ -82,6 +82,7 @@ def parse_data(msg_id, data):
 
     elif (msg_id == "306"):
         motor_temp = int(data[2] + data[3] + data[0] + data[1], 16)
+        motor_temp = twos_comp(motor_temp, 16)
         vehicle_speed = int(data[6] + data[7] + data[4] + data[5], 16)
         vehicle_speed = twos_comp(vehicle_speed, 16)
         isNegative = False
