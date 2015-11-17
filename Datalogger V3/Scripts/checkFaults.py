@@ -32,7 +32,7 @@ def update_database():
                         
                         faultData = output.strip().split("  ")[3][18:].strip()
                         
-                elif ("7EB  [8] 10 04 43" in output):        #more messages available
+                elif ("7EB  [8] 10 04 43" in output):           #more messages available
         
                         faultData = output.strip().split("  ")[3][21:].strip()
                         
@@ -45,7 +45,7 @@ def update_database():
                         p = subprocess.Popen("timeout 2 ./candump -t A -n " + msgCount + " can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
                         (output, err) = p.communicate()
 
-                        if len(output) > 0:  # got the response message
+                        if len(output) > 0:                     # got the response message
                 
                                 lines = output.strip().split("\n")
 

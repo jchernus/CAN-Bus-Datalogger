@@ -27,11 +27,8 @@ def twos_comp(val, bits):
 
 def parse_data(msg_id, data):
     global status_word1, battery_current1, battery_voltage1, mc_cap_voltage1, heatsink_temp1, motor_temp1, motor_current1, motor_voltage1, mc_battery_current1, vehicle_speed1, motor_velocity1, torque1
-
     global status_word2, battery_current2, battery_voltage2, mc_cap_voltage2, heatsink_temp2, motor_temp2, motor_current2, motor_voltage2, mc_battery_current2, vehicle_speed2, motor_velocity2, torque2
-
     global status_word3, battery_current3, battery_voltage3, mc_cap_voltage3, heatsink_temp3, motor_temp3, motor_current3, motor_voltage3, mc_battery_current3, vehicle_speed3, motor_velocity3, torque3
-
     global last_time_stamp
 
     pattern = re.compile(r'\s+')
@@ -121,12 +118,12 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
     #parse messages
     for line in lines:
-##        try:
+        try:
         data = line.strip().split("  ")
         parse_data(data[2], data[3][3:].strip()) #message id, message
-##        except:
-##            print "Error parsing line: " + line
-##            pass
+        except:
+            print "Error parsing line: " + line
+            pass
 
     #get date & time
     p = subprocess.Popen("date +\"%Y-%m-%d %H:%M:%S:%N\"", stdout=subprocess.PIPE, shell=True)
@@ -143,6 +140,9 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     	excelFile.write("\nDate, Time, Status Word, Cap Voltage, Battery Voltage, Motor Velocity, Motor Temp, Battery Current, Motor Current, Torque, Heatsink Temp, , Status Word, Cap Voltage, Battery Voltage, Motor Velocity, Motor Temp, Battery Current, Motor Current, Torque, Heatsink Temp, , Status Word, Cap Voltage, Battery Voltage, Motor Velocity, Motor Temp, Battery Current, Motor Current, Torque, Heatsink Temp\n")
         connected = True    
 
+    #write to screen
+    print current_date[0:10] + "  " + current_date[11:24] + "\n"
+    
     print "201: " + status_word1 + ", " + `mc_cap_voltage1` + ", " + `battery_voltage1`
     print "202: " + status_word2 + ", " + `mc_cap_voltage2` + ", " + `battery_voltage2`
     print "203: " + status_word3 + ", " + `mc_cap_voltage3` + ", " + `battery_voltage3`
@@ -155,9 +155,9 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     print "402: " + `battery_current2` + ", " + `motor_current2` + ", " + `torque2` + ", " + `heatsink_temp2`
     print "403: " + `battery_current3` + ", " + `motor_current3` + ", " + `torque3` + ", " + `heatsink_temp3`
 
+    #write to file
     excelFile.write(current_date[0:10] + ",")
     excelFile.write(current_date[11:24] + ",")
-
 
     excelFile.write(status_word1 + ",")
     excelFile.write(`mc_cap_voltage1` + ",")
@@ -184,6 +184,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     excelFile.write(`torque2` + ",")
     excelFile.write(`heatsink_temp2` + ", ,")
 
+
     excelFile.write(status_word3 + ",")
     excelFile.write(`mc_cap_voltage3` + ",")
     excelFile.write(`battery_voltage3` + ",")
@@ -199,7 +200,6 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     excelFile.write("\n")
     excelFile.close()
 
-    print current_date[0:10] + "  " + current_date[11:24] + "\n"
 
     #zero all data
     battery_current1 = battery_voltage1 = mc_cap_voltage1 = heatsink_temp1 = motor_temp1 = motor_current1 = motor_voltage1 = mc_battery_current1 = motor_velocity1 = torque1 = 0
@@ -210,6 +210,3 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
     battery_current3 = battery_voltage3 = mc_cap_voltage3 = heatsink_temp3 = motor_temp3 = motor_current3 = motor_voltage3 = mc_battery_current3 = motor_velocity3 = torque3 = 0
     status_word3 = ""
-
-###close databases
-##logsDB.close()
