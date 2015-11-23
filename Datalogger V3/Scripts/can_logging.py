@@ -3,10 +3,11 @@
 import subprocess, os, re, sqlite3
 
 battery_current = battery_voltage = battery_power_operating = battery_power_charging = 0
-mc_cap_voltage = heatsink_temp = current_fault = traction_state = motor_temp = motor_current = 0
-motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = max_batt_discharge_current = max_batt_charge_current = 0
+mc_cap_voltage = heatsink_temp = active_fault = traction_state = motor_temp = motor_current = 0
+motor_voltage = mc_battery_current = vehicle_speed = motor_velocity = DCL = CCL = 0
 soc = isPluggedIn = isCharging = isOperating = isRunning = 0
 batt_high_temp = batt_low_temp = batt_high_temp_id = batt_low_temp_id = 0
+high_cell_voltage = low_cell_voltage = high_cell_voltage_id = low_cell_voltage_id = 0
 
 odometer = hours_plugged_in = hours_charging = hours_operating = hours_running = battery_energy_operating = battery_energy_charging = motor_energy = aux_energy = 0
 
@@ -23,9 +24,10 @@ def twos_comp(val, bits):
 
 def parse_data(msg_id, data):
     global battery_current, battery_voltage, battery_power_operating, battery_power_charging
-    global mc_cap_voltage, heatsink_temp, current_fault, traction_state, motor_temp, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
+    global mc_cap_voltage, heatsink_temp, active_fault, traction_state, motor_temp, motor_current, motor_voltage, mc_battery_current, vehicle_speed, motor_velocity
     global last_time_stamp, odometer, hours_plugged_in, hours_charging, hours_operating, hours_running, battery_energy_operating, battery_energy_charging
-    global max_batt_discharge_current, max_batt_charge_current, batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id
+    global DCL, CCL, batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id
+    global high_cell_voltage, low_cell_voltage, high_cell_voltage_id, low_cell_voltage_id
     global soc, isPluggedIn, isCharging, isOperating, isRunning
     
     pattern = re.compile(r'\s+')
@@ -39,7 +41,10 @@ def parse_data(msg_id, data):
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_operating = battery_current * battery_voltage / 1000.0
 
-        soc = int(data[10] + data[11] + data[8] + data[9], 16)/2
+        soc = int(data[8] + data[9], 16)/2
+
+        high_cell_voltage = int(data[12] + data[13] + data[10] + data[11], 16) * 0.0001
+        high_cell_voltage_id = int(data[14] + data[15], 16)
         
         isOperating = 1  
 
@@ -51,7 +56,10 @@ def parse_data(msg_id, data):
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_charging = battery_current * battery_voltage / 1000.0
 
-        soc = int(data[10] + data[11] + data[8] + data[9], 16)/2.0
+        soc = int(data[8] + data[9], 16)/2.0
+
+        high_cell_voltage = int(data[12] + data[13] + data[10] + data[11], 16) * 0.0001
+        high_cell_voltage_id = int(data[14] + data[15], 16)
 		
 	isPluggedIn = 1
         if (battery_current) < -0.1:
@@ -59,14 +67,24 @@ def parse_data(msg_id, data):
 
     elif (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
         batt_high_temp = int(data[0] + data[1], 16)
-        batt_low_temp = int(data[4] + data[5], 16)
-        batt_high_temp_id = int(data[8] + data[9], 16)
-        batt_low_temp_id = int(data[10] + data[11], 16)
+        batt_high_temp = twos_comp(batt_high_temp, 8)
+        
+        batt_low_temp = int(data[2] + data[3], 16)
+        batt_low_temp = twos_comp(batt_low_temp, 8)
+        
+        batt_high_temp_id = int(data[4] + data[5], 16)
+        batt_low_temp_id = int(data[6] + data[7], 16)
+        
+        low_cell_voltage = int(data[10] + data[11] + data[8] + data[9], 16) * 0.0001
+        low_cell_voltage_id = int(data[12] + data[13], 16)
 
     elif (msg_id == "475"):
         mc_cap_voltage = int(data[2] + data[3] + data[0] + data[1], 16)/16.0
+        
         heatsink_temp = int(data[4] + data[5], 16)
-        current_fault = int(data[8] + data[9] + data[6] + data[7], 16)
+        heatsink_temp = twos_comp(heatsink_temp, 8)
+        
+        active_fault = int(data[8] + data[9] + data[6] + data[7], 16)
         traction_state = int(data[10] + data[11], 16)
         motor_current = int(data[14] + data[15] + data[12] + data[13], 16)
 
@@ -74,9 +92,9 @@ def parse_data(msg_id, data):
         motor_voltage = int(data[14] + data[15] + data[12] + data[13], 16)/16.0
 
     elif (msg_id == "294"):
-        max_batt_charge_current = int(data[6] + data[7] + data[4] + data[5], 16)
-        max_batt_charge_current = twos_comp(max_batt_charge_current, 16)
-        max_batt_discharge_current = int(data[10] + data[11] + data[8] + data[9], 16)
+        CCL = int(data[6] + data[7] + data[4] + data[5], 16)
+        CCL = twos_comp(CCL, 16)
+        DCL = int(data[10] + data[11] + data[8] + data[9], 16)
         mc_battery_current = int(data[14] + data[15] + data[12] + data[13], 16)
         mc_battery_current = twos_comp(mc_battery_current, 16)/16.0
 
@@ -150,40 +168,45 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
         command += current_date[0:10] + "','"
         command += current_date[11:19] + "','"
-        command += `soc` + "','"
-        command += `battery_current` + "','"
-        command += `battery_voltage` + "','"
+        command += str(soc) + "','"
+        command += str(battery_current) + "','"
+        command += str(battery_voltage) + "','"
         
-        command += `battery_power_operating` + "','"
-        command += `battery_power_charging` + "','"
+        command += str(battery_power_operating) + "','"
+        command += str(battery_power_charging) + "','"
         
-        command += `motor_current` + "','"
-        command += `motor_voltage` + "','"
+        command += str(motor_current) + "','"
+        command += str(motor_voltage) + "','"
         
-        command += `mc_battery_current` + "','"
-        command += `mc_cap_voltage` + "','"
+        command += str(mc_battery_current) + "','"
+        command += str(mc_cap_voltage) + "','"
         
-        command += `vehicle_speed` + "','"
+        command += str(vehicle_speed) + "','"
         command += str(motor_velocity) + "','"
         
-        command += `current_fault` + "','"
-        command += `traction_state` + "','"
+        command += str(active_fault) + "','"
+        command += str(traction_state) + "','"
         
-        command += `max_batt_discharge_current` + "','"
-        command += `max_batt_charge_current` + "','"
+        command += str(DCL) + "','"
+        command += str(CCL) + "','"
         
-        command += `motor_temp` + "','"
-        command += `heatsink_temp` + "','"
+        command += str(motor_temp) + "','"
+        command += str(heatsink_temp) + "','"
         
-        command += `batt_high_temp` + "','"
-        command += `batt_high_temp_id` + "','"
-        command += `batt_low_temp` + "','"
-        command += `batt_low_temp_id` + "','"
+        command += str(batt_high_temp) + "','"
+        command += str(batt_high_temp_id) + "','"
+        command += str(batt_low_temp) + "','"
+        command += str(batt_low_temp_id) + "','"
         
-        command += `isPluggedIn` + "','"
-        command += `isCharging` + "','"
-        command += `isOperating` + "','"
-        command += `isRunning`
+        command += str(high_cell_voltage) + "','"
+        command += str(low_cell_voltage) + "','"
+        command += str(high_cell_voltage_id) + "','"
+        command += str(low_cell_voltage_id) + "','"
+        
+        command += str(isPluggedIn) + "','"
+        command += str(isCharging) + "','"
+        command += str(isOperating) + "','"
+        command += str(isRunning)
     
         command += "');"
 
@@ -194,15 +217,6 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += "');"
 
         logsCurs.execute(command)
-
-        if (current_fault != 0):
-            
-            command = "INSERT INTO faults values('"
-            command += current_date[0:10] + "','"
-            command += current_date[11:19] + "','"
-            command += str(current_fault) + "');"
-            logsCurs.execute(command)
-
         logsDB.commit()
 
         #integrate certain variables over time to gets sums
@@ -230,26 +244,26 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
             #update summary data in database
             command = "UPDATE summary SET odometer="
-            command += `odometer` + ",energy_out="
-            command += `battery_energy_operating` + ",energy_in="
-            command += `battery_energy_charging` + ",hours_plugged_in="
-            command += `hours_plugged_in` + ",hours_charging="
-            command += `hours_charging` + ",hours_operating="
-            command += `hours_operating` + ",hours_running="
-            command += `hours_running`
+            command += str(odometer) + ",energy_out="
+            command += str(battery_energy_operating) + ",energy_in="
+            command += str(battery_energy_charging) + ",hours_plugged_in="
+            command += str(hours_plugged_in) + ",hours_charging="
+            command += str(hours_charging) + ",hours_operating="
+            command += str(hours_operating) + ",hours_running="
+            command += str(hours_running)
             command += " WHERE date='" + current_date[0:10] + "';" 
             
         else:
             #insert summary data into database
             command = "INSERT INTO summary VALUES('"
             command += current_date[0:10] + "','"
-            command += `odometer` + "','"
-            command += `battery_energy_operating` + "','"
-            command += `battery_energy_charging` + "','"
-            command += `hours_plugged_in` + "','"
-            command += `hours_charging` + "','"
-            command += `hours_operating` + "','"
-            command += `hours_running`
+            command += str(odometer) + "','"
+            command += str(battery_energy_operating) + "','"
+            command += str(battery_energy_charging) + "','"
+            command += str(hours_plugged_in) + "','"
+            command += str(hours_charging) + "','"
+            command += str(hours_operating) + "','"
+            command += str(hours_running)
             command += "');"
 
         logsCurs.execute(command)
@@ -257,9 +271,10 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
 
         #zero all data
         battery_current = battery_voltage = battery_power_operating = battery_power_charging = motor_current = 0
-        motor_voltage = mc_cap_voltage = current_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
-        max_batt_discharge_current = max_batt_charge_current = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
+        motor_voltage = mc_cap_voltage = active_fault = traction_state = vehicle_speed = motor_velocity = soc = 0
+        DCL = CCL = motor_temp = heatsink_temp = batt_high_temp = batt_high_temp_id = 0
         batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
+        high_cell_voltage = low_cell_voltage = high_cell_voltage_id = low_cell_voltage_id = 0
         odometer = battery_energy_operating = battery_energy_charging = hours_plugged_in = hours_charging = hours_operating = hours_running = 0
         
 #close databases

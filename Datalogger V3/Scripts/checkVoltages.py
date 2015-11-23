@@ -2,7 +2,7 @@
 
 import sqlite3, os, subprocess, re
 
-db_path = "/data/databases/Battery.db"
+db_path = "/data/databases/Live.db"
 current_date = ""
 cell_voltages = [0.0] * 96
 batt1_stats = [0.0, 0.0, 4.0]
