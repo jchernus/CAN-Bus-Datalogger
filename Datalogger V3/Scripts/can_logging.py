@@ -132,7 +132,7 @@ logsCurs=logsDB.cursor()
 while (True): #Checks the date, starts logging, when the logging ends (end of day, or end of time-period) it will transfer data to permanent location.
             
     #get x messages
-    p = subprocess.Popen("./candump -t A -n 10 can0,477:7ff,478:7ff,479:7ff,480:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen("candump -t A -n 10 can0,477:7ff,478:7ff,479:7ff,480:7ff,475:7ff,270:7ff,294:7ff,306:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     lines = output.strip().split("\n")
     
@@ -140,7 +140,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
     for line in lines:
         try:
             data = line.strip().split("  ")
-            parse_data(data[2], data[3][3:].strip()) #message id, message data
+            parse_data(data[2], data[4].strip()) #message id, message data
         except:
             print "Error parsing line: " + line
             pass
@@ -199,8 +199,8 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         command += str(batt_low_temp_id) + "','"
         
         command += str(high_cell_voltage) + "','"
-        command += str(low_cell_voltage) + "','"
         command += str(high_cell_voltage_id) + "','"
+        command += str(low_cell_voltage) + "','"
         command += str(low_cell_voltage_id) + "','"
         
         command += str(isPluggedIn) + "','"
@@ -276,6 +276,7 @@ while (True): #Checks the date, starts logging, when the logging ends (end of da
         batt_low_temp = batt_low_temp_id = isPluggedIn = isCharging = isOperating = isRunning = 0
         high_cell_voltage = low_cell_voltage = high_cell_voltage_id = low_cell_voltage_id = 0
         odometer = battery_energy_operating = battery_energy_charging = hours_plugged_in = hours_charging = hours_operating = hours_running = 0
+        high_cell_voltage = low_cell_voltage = high_cell_voltage_id = low_cell_voltage_id = 0
         
 #close databases
 logsDB.close()

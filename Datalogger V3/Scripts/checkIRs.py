@@ -23,9 +23,9 @@ def parse_message(msg_id, data):
 
         if (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
                 battHighTemp = int(data[0] + data[1], 16)
+                battHighTempId = int(data[2] + data[3], 16)
                 battLowTemp = int(data[4] + data[5], 16)
-                battHighTempId = int(data[8] + data[9], 16)
-                battLowTempId = int(data[10] + data[11], 16)
+                battLowTempId = int(data[6] + data[7], 16)
 
 def parse_data():
         global pack_voltage, pack_soc, total_pack_cycles, cell_IRs, batt_stats
@@ -149,22 +149,22 @@ def update_database():
 
         for PID in PIDs:
                 #send request for cell IRs
-                p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#0422" + PID + "00000000) &", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+                p = subprocess.Popen("(sleep 0.1; cansend can0 7E3#0422" + PID + "00000000) &", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
 
                 #receive message
-                p = subprocess.Popen("timeout 1 ./candump -t A -n 1 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+                p = subprocess.Popen("candump -t A -n 1 -T 200 can0,7EB:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                 (output, err) = p.communicate()
 
                 if len(output) > 0:  # got the response message
 
-                        cellIRDict[PID] = output.strip().split("  ")[3][3:].strip()
+                        cellIRDict[PID] = output.strip().split("  ")[4].strip()
                         
-                        if ("7EB  [8] 10 1B 62 F3" in output):          #cell IRs                                                                                          #Update values once known
+                        if ("7EB   [8]  10 1B 62 F3" in output):          #cell IRs                                                                                          #Update values once known
                                 #send request for more data
-                                p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#30) &", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+                                p = subprocess.Popen("(sleep 0.1; cansend can0 7E3#30) &", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
 
                                 #receive remaining message
-                                p = subprocess.Popen("timeout 2 ./candump -t A -n 3 can0,7EB:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+                                p = subprocess.Popen("candump -t A -n 3 -T 350 can0,7EB:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                                 (output, err) = p.communicate()
 
                                 if len(output) > 0:  # got the response message
@@ -175,15 +175,15 @@ def update_database():
                                         for line in lines:
                                                 try:
                                                     data = line.strip().split("  ")
-                                                    cellIRDict[PID] = cellIRDict[PID] + data[3][3:].strip()[2:]  
+                                                    cellIRDict[PID] = cellIRDict[PID] + data[4].strip()[2:]  
                                                 except:
                                                     return "Error: unable to parse line. Line: " + line
                                 else:
                                         return "Error: did not receive additional messages from BMS."
                                 
-                        elif ("7EB  [8] 04 62 F0" in output) or ("7EB  [8] 05 62 F0" in output):        #pack data
+                        elif ("7EB   [8]  04 62 F0" in output) or ("7EB  [8] 05 62 F0" in output):        #pack data
                                 #all data acquired
-                                cellIRDict[PID] = output.strip().split("  ")[3][3:].strip()
+                                cellIRDict[PID] = output.strip().split("  ")[4].strip()
                         else:
                                 pass
                                 #print "Error: cannot decode reply from BMS."
@@ -192,14 +192,14 @@ def update_database():
                         return "Error: did not receive reply from BMS."
 
         #retrieve pack temperature information
-        p = subprocess.Popen("timeout 2 ./candump -t A -n 1 can0,479:7ff,480:7ff", cwd="/data/can-test_pi2/", stdout=subprocess.PIPE, shell=True)
+        p = subprocess.Popen("candump -t A -n 1 -T 350 can0,479:7ff,480:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
         (output, err) = p.communicate()
 
         if len(output) > 0:  # got the response message
                 lines = output.strip().split("\n")
                 
                 data = lines[0].strip().split("  ")
-                parse_message(data[2], data[3][3:].strip()) #message id, message data
+                parse_message(data[2], data[4].strip()) #message id, message data
         else:
                 #ERROR
                 return "Error: did not receive 479/480 temperature message from BMS."
@@ -226,7 +226,7 @@ def update_database():
         command += str(pack_soc) + "','"
         command += str(total_pack_cycles) + "','"
 		
-	command += str(battHighTemp) + "','" + str(battLowTemp) + "','" + str(battHighTempId) + "','" + str(battLowTempId) + "','"
+	command += str(battHighTemp) + "','" + str(battHighTempId) + "','" + str(battLowTemp) + "','" + str(battLowTempId) + "','"
 
         for j in range (0,3):
                 command += str(batt1_stats[j]) + "','"
