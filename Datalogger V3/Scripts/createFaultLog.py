@@ -10,15 +10,14 @@ db_path = "/data/databases/FaultDictionary.db"
 def parse_msg (line):
         
         global faultID, hours, minutes
-        message = ""
         
-        if (" 12 41 01 " in line):                      #single message
+        if (" 12 41 01 " in line):                        #single message
                 #parse CAN data
                 try:
                         data = line.split("  ")[4][12:17].replace(" ","")
                         faultID = int(data[2:] + data[:2], 16)
                 except:
-                        message = "Error: Unable to parse data. Data: " + line
+                        return "Error: Unable to parse data. Data: " + line
                 
         elif (" 12 41 02 " in line):                      #single message
                 #parse CAN data
@@ -26,21 +25,21 @@ def parse_msg (line):
                         data = line.split("  ")[4][12:17].replace(" ","")
                         hours = int(data[2:] + data[:2], 16)
                 except:
-                        message = "Error: Unable to parse data. Data: " + line
+                        return "Error: Unable to parse data. Data: " + line
                 
         elif (" 12 41 03 " in line):                      #single message
                 #parse CAN data
                 try:
                         minutes = int(line.split("  ")[4][12:14], 16)
                 except:
-                        message =  "Error: Unable to parse data. Data: " + line
+                        return "Error: Unable to parse data. Data: " + line
 
         elif ("581   [8]  80" in line):                           #crashed
-                message = "Error: Crashed motor controller. Please try again."
+                return "Error: Crashed motor controller. Please try again."
         else:
-                message = "Error: Unexpected message format, cannot decode reply from motor controller. Data: " + line
+                return "Error: Unexpected message format, cannot decode reply from motor controller. Data: " + line
 
-        return message
+        return ""
 
 conn = sqlite3.connect(db_path)
 curs = conn.cursor()
@@ -56,7 +55,7 @@ if not (os.path.exists(csv_path)):
 
 csv_path += "FaultLog.csv"
 
-with open(csv_path, 'a+') as file:
+with open(csv_path, 'w+') as file:
         file.write("Date:," + current_date[:10] + "\n")
         file.write("Time:," + current_date[11:] + "\n\n")
 
@@ -69,7 +68,7 @@ with open(csv_path, 'a+') as file:
         (output, err) = p.communicate()
         
         for num in range(0,40):
-               
+              
                 #select event through 4111
                 p = subprocess.Popen("cansend can0 601#2B114100" + hex(num)[2:].zfill(2) + "00EFFA", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                 p = subprocess.Popen("candump -t A -n 1 -T 100 can0,581:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
@@ -100,8 +99,12 @@ with open(csv_path, 'a+') as file:
                                 #print str(hours) + "," + str(minutes) + "," + str(row[0]) + "," + str(row[1]) + "," + str(row[2]) + "," + str(row[3]) + "\n"
                 else:
                         print message
+                        break
 
         #BMS Fault Retrieval
-        file.write('\n\nFault ID\n')
+        #file.write('\n\nFault ID\n')
 
+if not message == "":
+        os.remove(csv_path)
+        
 conn.close()

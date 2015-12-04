@@ -9,11 +9,11 @@ def parse_data(faultData):
         
         #remove whitespaces entirely
         pattern = re.compile(r'\s+')
-        faultData = re.sub(pattern, '', cellVDict[PID])
+        faultData = re.sub(pattern, '', faultData)
 
         for x in range (0, len(faultData)/4):
-                faults[x] = int(data[x] + data[x+1] + data[x+2] + data[x+3], 16)
-
+                faults.append(faultData[x] + faultData[x+1] + faultData[x+2] + faultData[x+3])
+        
         return faults                
 
 def update_database():
@@ -35,29 +35,28 @@ def update_database():
 
                 elif ("7EB   [8]  04 43" in output):                #single message
                         
-                        faultData = output.strip().split("  ")[3][18:].strip()
+                        faultData = output.strip().split("  ")[4][9:14].strip()
                         
                 elif ("7EB   [8]  10 04 43" in output):           #more messages available
         
-                        faultData = output.strip().split("  ")[3][21:].strip()
+                        faultData = output.strip().split("  ")[4][12:].strip()
                         
                         msgCount = int(output[18:20],16)
                                 
                         #send request for more data
-                        p = subprocess.Popen("(sleep 0.1; ./cansend can0 7E3#30) &", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
+                        p = subprocess.Popen("(sleep 0.1; cansend can0 7E3#30) &", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
 
                         #receive remaining messages
-                        p = subprocess.Popen("candump -t A -n " + msgCount + " -T 50 can0,7EB:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
+                        p = subprocess.Popen("candump -t A -n " + msgCount + " -T 200 can0,7EB:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                         (output, err) = p.communicate()
 
                         if len(output) > 0:                     # got the response message
                 
                                 lines = output.strip().split("\n")
-
                                 for line in lines:
                                         try:
                                                 data = line.strip().split("  ")
-                                                faultData = faultData + data[3][3:].strip()[2:]  
+                                                faultData = faultData + data[4].strip()[2:]  
                                         except:
                                                 return "Error: Unable to parse line. Line: " + line
 
@@ -109,11 +108,11 @@ def update_database():
                                         
                                         for line in lines:
                                                 if ("581   [8]  4B 00 53 03" in line):                      #single message
-                                                        #try:
-                                                        data = line.split("  ")[4][12:17].strip()
-                                                        faults.append(data[3:] + data[:2])
-                                                        #except:
-                                                        #        return "Error: Unable to parse fault data. Data: " + data
+                                                        try:
+                                                                data = line.split("  ")[4][12:17].strip()
+                                                                faults.append(int(data[3:] + data[:2], 16))
+                                                        except:
+                                                                return "Error: Unable to parse fault data. Data: " + data
                                                         
                                                 elif ("581   [8]  80" in output):                                         #crashed
                                                         return "Error: Crashed motor controller. Please do a key cycle to recover, and then try again."

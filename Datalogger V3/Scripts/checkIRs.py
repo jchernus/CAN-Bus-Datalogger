@@ -9,23 +9,34 @@ batt1_stats = [0.0, 0.0, 400.0]
 batt2_stats = [0.0, 0.0, 400.0]
 batt3_stats = [0.0, 0.0, 400.0]
 batt4_stats = [0.0, 0.0, 400.0]
-battHighTemp, battLowTemp, battHighTempId, battLowTempId = 0, 0, 0, 0
+batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id = 0, 0, 0, 0
 pack_voltage = pack_soc = total_pack_cycles = 0.0
 
 PIDs = ['F300','F301', 'F303', 'F304', 'F306', 'F307', 'F309', 'F30A', 'F00D', 'F00F', 'F018']
 cellIRDict = {}
 
+def twos_comp(val, bits):
+    #compute the 2's compliment of int value val
+    val = int(val)
+    if (val & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
+        val = val - (1 << bits)        # compute negative value
+    return val
+
 def parse_message(msg_id, data):
-        global battHighTemp, battLowTemp, battHighTempId, battLowTempId
+        global batt_high_temp, batt_low_temp, batt_high_temp_id, batt_low_temp_id
 
         pattern = re.compile(r'\s+')
         data = re.sub(pattern, '', data)
 
         if (msg_id == "479" or msg_id == "480"):     # these two transmit the same info
-                battHighTemp = int(data[0] + data[1], 16)
-                battHighTempId = int(data[2] + data[3], 16)
-                battLowTemp = int(data[4] + data[5], 16)
-                battLowTempId = int(data[6] + data[7], 16)
+                batt_high_temp = int(data[0] + data[1], 16)
+                batt_high_temp = twos_comp(batt_high_temp, 8)
+                
+                batt_low_temp = int(data[2] + data[3], 16)
+                batt_low_temp = twos_comp(batt_low_temp, 8)
+                
+                batt_high_temp_id = int(data[4] + data[5], 16)
+                batt_low_temp_id = int(data[6] + data[7], 16)
 
 def parse_data():
         global pack_voltage, pack_soc, total_pack_cycles, cell_IRs, batt_stats
@@ -226,7 +237,7 @@ def update_database():
         command += str(pack_soc) + "','"
         command += str(total_pack_cycles) + "','"
 		
-	command += str(battHighTemp) + "','" + str(battHighTempId) + "','" + str(battLowTemp) + "','" + str(battLowTempId) + "','"
+	command += str(batt_high_temp) + "','" + str(batt_high_temp_id) + "','" + str(batt_low_temp) + "','" + str(batt_low_temp_id) + "','"
 
         for j in range (0,3):
                 command += str(batt1_stats[j]) + "','"
@@ -281,7 +292,7 @@ if (tableExists):
 
 else:
         curs.execute("""CREATE TABLE IR(date DATE, time TIME, packVoltage REAL, packSOC INTEGER, totalCycles INTEGER, 
-        battHighTemp REAL, battLowTemp REAL, battHighTempId INTEGER, battLowTempId INTEGER,
+        batt_high_temp REAL, batt_low_temp REAL, batt_high_temp_id INTEGER, batt_low_temp_id INTEGER,
         batt1Avg REAL, batt1High REAL, batt1Low REAL,
         batt2Avg REAL, batt2High REAL, batt2Low REAL, 
         batt3Avg REAL, batt3High REAL, batt3Low REAL,
