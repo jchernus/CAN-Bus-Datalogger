@@ -37,17 +37,17 @@ def update_database():
                         
                         faultData = output.strip().split("  ")[4][9:14].strip()
                         
-                elif ("7EB   [8]  10 04 43" in output):           #more messages available
+                elif ("7EB   [8]  10 " in output):           #more messages available
         
                         faultData = output.strip().split("  ")[4][12:].strip()
-                        
-                        msgCount = int(output[18:20],16)
+
+                        msgCount = int(output.strip().split("  ")[4][9:11],16)
                                 
                         #send request for more data
                         p = subprocess.Popen("(sleep 0.1; cansend can0 7E3#30) &", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
 
                         #receive remaining messages
-                        p = subprocess.Popen("candump -t A -n " + msgCount + " -T 200 can0,7EB:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
+                        p = subprocess.Popen("candump -t A -n " + str(msgCount) + " -T 200 can0,7EB:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                         (output, err) = p.communicate()
 
                         if len(output) > 0:                     # got the response message

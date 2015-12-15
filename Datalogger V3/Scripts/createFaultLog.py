@@ -68,7 +68,7 @@ with open(csv_path, 'w+') as file:
         (output, err) = p.communicate()
         
         for num in range(0,40):
-              
+               
                 #select event through 4111
                 p = subprocess.Popen("cansend can0 601#2B114100" + hex(num)[2:].zfill(2) + "00EFFA", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                 p = subprocess.Popen("candump -t A -n 1 -T 100 can0,581:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
