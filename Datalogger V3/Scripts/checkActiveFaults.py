@@ -4,17 +4,19 @@ import sqlite3, subprocess, re
 
 db_path = "/data/databases/Live.db"
 
+faultList = []
+
 def parse_data(faultData):
-        faults = []
+        global faultList
         
         #remove whitespaces entirely
         pattern = re.compile(r'\s+')
         faultData = re.sub(pattern, '', faultData)
 
-        for x in range (0, len(faultData)/4):
-                faults.append(faultData[x] + faultData[x+1] + faultData[x+2] + faultData[x+3])
-        
-        return faults                
+        for x in range (0, len(faultData), 4):
+                id = faultData[x] + faultData[x+1] + faultData[x+2] + faultData[x+3]
+                if not id == "0000":
+                        faultList.append(id)         
 
 def update_database():
         faultData = ""
@@ -68,10 +70,10 @@ def update_database():
                 return "Error: Did not receive reply from BMS."
 
         #parse the data
-        faults = []
+
         if faultData != "":
                 try:
-                        faults = parse_data(faultData)
+                        parse_data(faultData)
                 except:
                         return "Error: Trouble parsing data."
 
@@ -87,11 +89,11 @@ def update_database():
                         #parse CAN data
                         numFaults = 0
                         try:
-                                numFaults = output.split("  ")[4][12:14].strip()
+                                numFaults = int(output.split("  ")[4][12:14].strip(), 16)
                         except:
                                 return "Error: Unable to parse number of faults. Data: " + faultData
 
-                        for index in range (0, int(numFaults, 16)):
+                        for index in range (0, numFaults):
                                 #select message
                                 p = subprocess.Popen("(sleep 0.1; cansend can0 601#2B005302" + hex(index)[2:].zfill(2) + "00EFFA;) &", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)
                                 p = subprocess.Popen("candump -t A -n 1 -T 150 can0,581:7ff", cwd="/data/can-utils/", stdout=subprocess.PIPE, shell=True)                                
@@ -110,14 +112,14 @@ def update_database():
                                                 if ("581   [8]  4B 00 53 03" in line):                      #single message
                                                         try:
                                                                 data = line.split("  ")[4][12:17].strip()
-                                                                faults.append(int(data[3:] + data[:2], 16))
+                                                                faultList.append(int(data[3:] + data[:2], 16))
                                                         except:
                                                                 return "Error: Unable to parse fault data. Data: " + data
                                                         
-                                                elif ("581   [8]  80" in output):                                         #crashed
+                                                elif ("581   [8]  80" in output):                           #crashed
                                                         return "Error: Crashed motor controller. Please do a key cycle to recover, and then try again."
 
-                elif ("581   [8]  80" in output):                                         #crashed
+                elif ("581   [8]  80" in output):                                                           #crashed
                         return "Error: Crashed motor controller. Please do a key cycle to recover, and then try again."
                 else:
                         return "Error: Unexpected message format, cannot decode reply from motor controller."
@@ -129,7 +131,7 @@ def update_database():
         curs.execute("VACUUM;")
 
         #print faults
-        for fault in faults:
+        for fault in faultList:
                 command = "INSERT INTO faults VALUES('" + current_date[:11] + "','" + str(fault) + "');"
                 curs.execute(command)
         

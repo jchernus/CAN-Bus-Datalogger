@@ -2,7 +2,7 @@
 
 import sqlite3, os, subprocess
 
-db_paths = ["/data/databases/Logs.db", "/data/databases/GroundHogLogs.db"]
+db_paths = ["/data/databases/Logs.db"]
 
 for db_path in db_paths:
         if (os.path.exists(db_path)):

@@ -292,7 +292,7 @@ if (tableExists):
 
 else:
         curs.execute("""CREATE TABLE IR(date DATE, time TIME, packVoltage REAL, packSOC INTEGER, totalCycles INTEGER, 
-        batt_high_temp REAL, batt_low_temp REAL, batt_high_temp_id INTEGER, batt_low_temp_id INTEGER,
+	battHighTemp REAL, battHighTempId REAL, battLowTemp INTEGER, battLowTempId INTEGER,
         batt1Avg REAL, batt1High REAL, batt1Low REAL,
         batt2Avg REAL, batt2High REAL, batt2Low REAL, 
         batt3Avg REAL, batt3High REAL, batt3Low REAL,
