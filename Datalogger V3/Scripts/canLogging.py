@@ -41,7 +41,7 @@ def parse_data(msg_id, data):
         battery_voltage = int(data[6] + data[7] + data[4] + data[5], 16)/100.0
         battery_power_operating = battery_current * battery_voltage / 1000.0
 
-        soc = int(data[8] + data[9], 16)/2
+        soc = int(data[8] + data[9], 16)/2.0
 
         high_cell_voltage = int(data[12] + data[13] + data[10] + data[11], 16) * 0.0001
         high_cell_voltage_id = int(data[14] + data[15], 16)
