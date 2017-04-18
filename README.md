@@ -5,11 +5,11 @@ This project uses an embedded computer running Linux as a platform for a CAN-Bus
 
 I use two different sets of hardware - hobby (for testing) and industrial. I will outline and reference the hobbyist hardware here, as it is more likely to be relevant for the average reader.
 
-• An embedded computer running Linux - Raspberry Pi 2 will do.
-• MicroSD card to host the OS and files.
-• A Pi-CAN board from SK Pang Electronics. This board houses a Microchip MCP2515 CAN controller and MCP2551 CAN transceiver for all of our CAN communication needs.
-• A Real Time Clock. I've been using the DS1307 from Adafruit.
-• A Wi-Fi Dongle, also from Adafruit.
+* An embedded computer running Linux - Raspberry Pi 2 will do.
+* MicroSD card to host the OS and files.
+* A Pi-CAN board from SK Pang Electronics. This board houses a Microchip MCP2515 CAN controller and MCP2551 CAN transceiver for all of our CAN communication needs.
+* A Real Time Clock. I've been using the DS1307 from Adafruit.
+* A Wi-Fi Dongle, also from Adafruit.
 
 I use can-utils (http://elinux.org/Can-utils), which is a set of open source CAN drivers and a networking stack created by Volkswagen (thanks!) for the Linux kernel. 
 
@@ -20,3 +20,5 @@ To create the diagnostic functionality, I send SDOs on the canbus requesting spe
 I rely on a number of packages and tools to get the hardware and code running. Included is an Excel document called Commands which houses some important information about getting your image of Linux setup to a working configuration.
 
 Hopefully this code will help get you started on CAN Bus logging/diagnostics/hacking. :-)
+
+For more information, visit my [personal website] (http://www.jchernus.com/can-data-logger.html).
