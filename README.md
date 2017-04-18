@@ -21,4 +21,4 @@ I rely on a number of packages and tools to get the hardware and code running. I
 
 Hopefully this code will help get you started on CAN Bus logging/diagnostics/hacking. :-)
 
-For more information, visit my [personal website] (http://www.jchernus.com/can-data-logger.html).
+For more information, visit my [personal website](http://www.jchernus.com/can-data-logger.html).
